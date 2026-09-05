@@ -49,6 +49,7 @@ var providers = []Provider{
 	tavilyProvider(),
 	parallelProvider(),
 	serpbaseProvider(),
+	degoogProvider(),
 }
 
 // Providers returns the descriptors in their stable presentation order.

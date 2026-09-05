@@ -41,7 +41,8 @@
     "keenable",
     "tavily",
     "parallel",
-    "serpbase"
+    "serpbase",
+    "degoog"
   ],
   "available_code_backends": [
     "grepapp",
@@ -50,5 +51,6 @@
   ],
   "available_doc_backends": [
     "context7"
-  ]
+  ],
+  "degoog_url": ""
 }

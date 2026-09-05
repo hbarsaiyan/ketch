@@ -47,6 +47,13 @@ func KeyPool(key, plural string, positions ...int) Setting {
 	return s
 }
 
+// Scalar declares a single non-secret operator value such as an instance URL.
+// New settings append after the legacy ordered ones; providers that need doctor
+// gating or a default set those fields on the returned value.
+func Scalar(key string) Setting {
+	return Setting{Key: key, FileOrder: 1000, DiscoveryOrder: 1000, EnvOrder: 1000, ValidationOrder: 1000}
+}
+
 // Keys returns the effective immutable, de-duplicated credential pool.
 func (s Setting) Keys(c *Config) []string { return MergeKeys(c.String(s.Key), c.Strings(s.Plural)) }
 

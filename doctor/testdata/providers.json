@@ -58,6 +58,13 @@
     "latency_ms": 0
   },
   {
+    "surface": "search",
+    "backend": "degoog",
+    "status": "skipped",
+    "detail": "not configured (ketch config set degoog_url \u003curl\u003e; optional)",
+    "latency_ms": 0
+  },
+  {
     "surface": "code",
     "backend": "grepapp",
     "status": "ok",
