@@ -250,7 +250,7 @@ The plugin registers `ketch mcp serve` as an MCP server and installs the ketch r
 
 ## Contributing
 
-Issues and pull requests are welcome at [github.com/1broseidon/ketch](https://github.com/1broseidon/ketch).
+Issues and pull requests are welcome at [github.com/1broseidon/ketch](https://github.com/1broseidon/ketch). See [CONTRIBUTING.md](./CONTRIBUTING.md) for what a mergeable PR looks like. One rule is firm: a new search, code, or docs backend must be added through the provider registry (one file plus one registry line); PRs that wire a provider any other way are not merged.
 
 ## License
 

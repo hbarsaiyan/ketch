@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Provider registries** (internal). Search, code, and docs backends are now declared by a descriptor beside each implementation and listed in an explicit, ordered `registry.go` per package. Config keys, `KETCH_*` env overrides, redacted `ketch config` discovery, `ketch doctor`, CLI backend lists, MCP tool and argument descriptions, and `--multi` / `--random` eligibility all derive from the descriptor. No user-visible behavior changes: config files, discovery JSON, doctor output, help text, error messages, and MCP `tools/list` are byte-identical to 0.14.1. Adding a provider is now one Go file plus one registry line; see `CONTRIBUTING.md` and `AGENTS.md`.
+
+### Added
+- `CONTRIBUTING.md`: what a mergeable PR looks like, and the requirement that new backend providers use the registry pattern.
+
 ## [0.14.1] - 2026-09-05
 
 ### Added
