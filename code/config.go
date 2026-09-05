@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/1broseidon/ketch/config"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // ErrUnknownBackend reports a backend name that is not a known code search
@@ -32,6 +32,6 @@ func NewFromConfig(cfg *config.Config, backend string) (Searcher, error) {
 		}
 		return NewGitHub(token), nil
 	default:
-		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(config.AvailableCodeBackends(), ", "))
+		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(AvailableBackends(), ", "))
 	}
 }

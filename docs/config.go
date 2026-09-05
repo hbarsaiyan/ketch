@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/1broseidon/ketch/config"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // ErrUnknownBackend reports a backend name that is not a known docs backend.
@@ -33,6 +33,6 @@ func NewFromConfig(cfg *config.Config, backend string) (Searcher, error) {
 		// unknown backend) because the name is reserved for the FTS5 stub.
 		return nil, fmt.Errorf("docs backend %q not yet implemented (use context7)", backend)
 	default:
-		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(config.AvailableDocBackends(), ", "))
+		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(AvailableBackends(), ", "))
 	}
 }

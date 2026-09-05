@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/1broseidon/ketch/config"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // ErrUnknownBackend reports a backend name that is not a known search backend.
@@ -32,7 +32,7 @@ func NewFromConfig(cfg *config.Config, backend, searxngURL string) (Searcher, er
 	case "parallel":
 		return NewParallel(), nil
 	default:
-		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(config.AvailableBackends(), ", "))
+		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(AvailableBackends(), ", "))
 	}
 }
 
@@ -72,6 +72,6 @@ func newCredentialAwareBackend(cfg *config.Config, backend string) (Searcher, er
 		}
 		return newSerpBaseWithKeys(keys), nil
 	default:
-		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(config.AvailableBackends(), ", "))
+		return nil, fmt.Errorf("%w %q (available: %s)", ErrUnknownBackend, backend, strings.Join(AvailableBackends(), ", "))
 	}
 }

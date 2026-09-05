@@ -1,11 +1,15 @@
 package code
 
 import (
-	"bufio"
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -141,4 +145,10 @@ func (s *Sourcegraph) parseSSE(resp *http.Response, limit int) ([]Result, error)
 	}
 
 	return results, nil
+}
+
+func sourcegraphProvider() Provider {
+	return Provider{ID: "sourcegraph", Name: "Sourcegraph", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewSourcegraph(c.SourcegraphURL), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeReachable(ctx, client, c.SourcegraphURL, "sourcegraph")
+	}}
 }

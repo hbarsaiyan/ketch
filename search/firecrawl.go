@@ -1,15 +1,19 @@
 package search
 
 import (
-	"bytes"
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
-	"github.com/1broseidon/ketch/config"
+	"bytes"
+
 	"github.com/1broseidon/ketch/httpx"
 )
 
@@ -144,4 +148,78 @@ func firecrawlStatusError(resp *http.Response) error {
 		return fmt.Errorf("firecrawl returned status %d: %s", resp.StatusCode, detail)
 	}
 	return fmt.Errorf("firecrawl returned status %d", resp.StatusCode)
+}
+
+const firecrawlSearchBody = `{"query":"ketch","limit":1}`
+const firecrawlLivenessBody = `{}`
+
+// ProbeFirecrawl checks the provider using a caller-supplied client and endpoint.
+func ProbeFirecrawl(ctx context.Context, client *http.Client, endpoint, apiKey string) (health.Status, string) {
+	key := strings.TrimSpace(apiKey)
+	hosted := strings.EqualFold(endpoint, config.FirecrawlSearchURL(config.DefaultFirecrawlURL))
+	if key == "" && hosted {
+		return health.StatusNoKey, "API key not set (get one free at https://firecrawl.dev then: ketch config set firecrawl_api_key <key>)"
+	}
+
+	body := firecrawlSearchBody
+	if !hosted {
+		body = firecrawlLivenessBody
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(body))
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if key != "" {
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	defer health.Drain(resp)
+
+	if !hosted {
+		return firecrawlLivenessStatus(resp.StatusCode, key)
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return health.StatusOK, ""
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusPaymentRequired:
+		return health.StatusMisconfigured, "API key rejected (ketch config set firecrawl_api_key <key>)"
+	case http.StatusTooManyRequests:
+		return health.StatusOK, "reachable, key accepted (rate limited)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", resp.StatusCode)
+	}
+}
+
+// firecrawlLivenessStatus checks the provider using a caller-supplied client and endpoint.
+func firecrawlLivenessStatus(code int, key string) (health.Status, string) {
+	switch code {
+	case http.StatusOK, http.StatusBadRequest:
+		return health.StatusOK, "reachable (liveness only — a real search is not run)"
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusPaymentRequired:
+		if key == "" {
+			return health.StatusMisconfigured, "instance requires an API key (ketch config set firecrawl_api_key <key>)"
+		}
+		return health.StatusMisconfigured, "API key rejected (ketch config set firecrawl_api_key <key>)"
+	case http.StatusTooManyRequests:
+		return health.StatusOK, "reachable (rate limited)"
+	case http.StatusNotFound:
+		return health.StatusUnreachable, "returned status 404 — firecrawl_url should be the API base (e.g. http://localhost:3002)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", code)
+	}
+}
+
+func firecrawlProvider() Provider {
+	return Provider{ID: "firecrawl", Name: "Firecrawl", Usable: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 || !c.IsDefaultFirecrawlURL() }, Configured: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) {
+		return newFirecrawlWithKeys(c.FirecrawlKeys(), c.EffectiveFirecrawlURL()), nil
+	}, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeKeyPool(c.FirecrawlKeys(), func(key string) (health.Status, string) {
+			return ProbeFirecrawl(ctx, client, config.FirecrawlSearchURL(c.EffectiveFirecrawlURL()), key)
+		})
+	}}
 }

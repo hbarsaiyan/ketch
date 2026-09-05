@@ -2,9 +2,13 @@ package docs
 
 import (
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/1broseidon/ketch/httpx"
@@ -180,4 +184,33 @@ func (c *Context7) GetDocs(ctx context.Context, libraryID, query string, tokens 
 	}
 
 	return results, nil
+}
+
+// ProbeContext7 checks the provider using a caller-supplied client and endpoint.
+func ProbeContext7(ctx context.Context, client *http.Client, apiBase, apiKey string) (health.Status, string) {
+	if apiKey == "" {
+		return health.StatusNoKey, "API key not set (get one then: ketch config set context7_api_key <key>)"
+	}
+	resp, err := health.Get(ctx, client, apiBase+"/api/v1/search?query=go", map[string]string{
+		"Authorization": "Bearer " + apiKey,
+	})
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	defer health.Drain(resp)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return health.StatusOK, ""
+	case http.StatusUnauthorized:
+		return health.StatusMisconfigured, "API key rejected (ketch config set context7_api_key <key>)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", resp.StatusCode)
+	}
+}
+
+func context7Provider() Provider {
+	return Provider{ID: "context7", Name: "Context7", Usable: func(c *config.Config) bool { return c.Context7APIKey != "" }, Configured: func(c *config.Config) bool { return c.Context7APIKey != "" }, New: func(c *config.Config) (Searcher, error) { return NewContext7(c.Context7APIKey), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return ProbeContext7(ctx, client, "https://context7.com", c.Context7APIKey)
+	}}
 }

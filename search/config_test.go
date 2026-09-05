@@ -3,7 +3,7 @@ package search
 import (
 	"testing"
 
-	"github.com/1broseidon/ketch/config"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 func TestNewFromConfigBraveKeyCompatibility(t *testing.T) {

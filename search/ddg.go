@@ -2,10 +2,15 @@ package search
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
+	"fmt"
 	"net/url"
 	"strings"
+
 	"time"
 
 	"github.com/1broseidon/ketch/httpx"
@@ -98,4 +103,28 @@ func extractDDGURL(href string) string {
 		return uddg
 	}
 	return href
+}
+
+// ProbeDDG checks the provider using a caller-supplied client and endpoint.
+func ProbeDDG(ctx context.Context, client *http.Client, endpoint string) (health.Status, string) {
+	resp, err := health.Get(ctx, client, endpoint+"?q=ketch", map[string]string{"User-Agent": ddgUA})
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	defer health.Drain(resp)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return health.StatusOK, ""
+	case http.StatusAccepted:
+		return health.StatusOK, "reachable (rate limited)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", resp.StatusCode)
+	}
+}
+
+func ddgProvider() Provider {
+	return Provider{ID: "ddg", Name: "DuckDuckGo", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewDDG(), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return ProbeDDG(ctx, client, "https://html.duckduckgo.com/html/")
+	}}
 }

@@ -2,10 +2,14 @@ package search
 
 import (
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -133,4 +137,48 @@ func serpBaseStatusError(resp *http.Response) error {
 		return fmt.Errorf("serpbase returned status %d: %s", resp.StatusCode, detail)
 	}
 	return fmt.Errorf("serpbase returned status %d", resp.StatusCode)
+}
+
+// ProbeSerpBase checks the provider using a caller-supplied client and endpoint.
+func ProbeSerpBase(ctx context.Context, client *http.Client, endpoint, apiKey string) (health.Status, string) {
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		return health.StatusNoKey, "API key not set (get a free key at https://serpbase.dev then: ketch config set serpbase_api_key <key>)"
+	}
+	params := url.Values{}
+	params.Set("q", "ketch")
+	params.Set("num", "1")
+	params.Set("api_key", key)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"?"+params.Encode(), nil)
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	defer health.Drain(resp)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return health.StatusOK, ""
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return health.StatusMisconfigured, "API key rejected (ketch config set serpbase_api_key <key>)"
+	case http.StatusTooManyRequests:
+		return health.StatusOK, "reachable, key accepted (rate limited)"
+	case http.StatusPaymentRequired:
+		return health.StatusOK, "reachable, key accepted (search credits exhausted)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", resp.StatusCode)
+	}
+}
+
+func serpbaseProvider() Provider {
+	return Provider{ID: "serpbase", Name: "SerpBase", Usable: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, Configured: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newSerpBaseWithKeys(c.SerpBaseKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeKeyPool(c.SerpBaseKeys(), func(key string) (health.Status, string) {
+			return ProbeSerpBase(ctx, client, "https://api.serpbase.dev/google/search", key)
+		})
+	}}
 }

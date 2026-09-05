@@ -10,27 +10,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/1broseidon/ketch/code"
 	"github.com/1broseidon/ketch/config"
+	"github.com/1broseidon/ketch/docs"
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	"github.com/1broseidon/ketch/search"
 )
 
-// Status classifies the outcome of a single doctor check.
-type Status string
+// Status preserves the public doctor status type.
+type Status = health.Status
 
 const (
-	// StatusOK means the check passed: configured, reachable, credentials accepted.
-	StatusOK Status = "ok"
-	// StatusNoKey means the backend needs a key/token and none is configured.
-	StatusNoKey Status = "no_key"
-	// StatusUnreachable means the endpoint did not answer (network error,
-	// timeout, or a server-side failure status).
-	StatusUnreachable Status = "unreachable"
-	// StatusMisconfigured means the endpoint answered but rejected the setup
-	// (invalid key, SearXNG JSON format blocked, missing browser binary, ...).
-	// Detail carries the fix hint.
-	StatusMisconfigured Status = "misconfigured"
-	// StatusSkipped means the check does not apply (e.g. no browser configured).
-	StatusSkipped Status = "skipped"
+	StatusOK            = health.StatusOK
+	StatusNoKey         = health.StatusNoKey
+	StatusUnreachable   = health.StatusUnreachable
+	StatusMisconfigured = health.StatusMisconfigured
+	StatusSkipped       = health.StatusSkipped
 )
 
 // Check is one line of the doctor report. The JSON schema is stable:
@@ -118,83 +114,23 @@ func Run(ctx context.Context, cfg *config.Config, timeout time.Duration) []Check
 // backend whose API key is explicitly set, the configured browser, or the
 // cache. Optional backends that merely lack a key stay informational.
 func buildSpecs(cfg *config.Config, client *http.Client) []spec {
-	braveKeys := cfg.BraveKeys()
-	exaKeys := cfg.ExaKeys()
-	firecrawlKeys := cfg.FirecrawlKeys()
-	keenableKeys := cfg.KeenableKeys()
-	tavilyKeys := cfg.TavilyKeys()
-	serpbaseKeys := cfg.SerpBaseKeys()
-	c7Key := cfg.Context7APIKey
-	searxngURL := cfg.SearxngURL
-	firecrawlURL := cfg.EffectiveFirecrawlURL()
-	sourcegraphURL := cfg.SourcegraphURL
-	browser := cfg.Browser
-	cookieFile := cfg.CookieFile
-	resolveGithub := cfg.ResolveGithubToken
-
-	return []spec{
-		{"search", "brave", cfg.Backend == "brave" || len(braveKeys) > 0, func(ctx context.Context) (Status, string) {
-			return probeKeyPool(braveKeys, func(key string) (Status, string) {
-				return probeBrave(ctx, client, braveEndpoint, key)
-			})
-		}},
-		{"search", "ddg", cfg.Backend == "ddg", func(ctx context.Context) (Status, string) {
-			return probeDDG(ctx, client, ddgEndpoint)
-		}},
-		{"search", "searxng", cfg.Backend == "searxng", func(ctx context.Context) (Status, string) {
-			return probeSearxng(ctx, client, searxngURL)
-		}},
-		{"search", "exa", cfg.Backend == "exa" || len(exaKeys) > 0, func(ctx context.Context) (Status, string) {
-			return probeKeyPool(exaKeys, func(key string) (Status, string) {
-				return probeExa(ctx, client, exaEndpoint(key), key != "")
-			})
-		}},
-		{"search", "firecrawl", cfg.Backend == "firecrawl" || len(firecrawlKeys) > 0, func(ctx context.Context) (Status, string) {
-			endpoint := config.FirecrawlSearchURL(firecrawlURL)
-			return probeKeyPool(firecrawlKeys, func(key string) (Status, string) {
-				return probeFirecrawl(ctx, client, endpoint, key)
-			})
-		}},
-		{"search", "keenable", cfg.Backend == "keenable" || len(keenableKeys) > 0, func(ctx context.Context) (Status, string) {
-			return probeKeyPool(keenableKeys, func(key string) (Status, string) {
-				return probeKeenable(ctx, client, keenableEndpoint, key)
-			})
-		}},
-		{"search", "tavily", cfg.Backend == "tavily" || len(tavilyKeys) > 0, func(ctx context.Context) (Status, string) {
-			return probeKeyPool(tavilyKeys, func(key string) (Status, string) {
-				return probeTavily(ctx, client, tavilyEndpoint, key)
-			})
-		}},
-		{"search", "parallel", cfg.Backend == "parallel", func(ctx context.Context) (Status, string) {
-			return probeMCP(ctx, client, parallelEndpoint, "parallel")
-		}},
-		{"search", "serpbase", cfg.Backend == "serpbase" || len(serpbaseKeys) > 0, func(ctx context.Context) (Status, string) {
-			return probeKeyPool(serpbaseKeys, func(key string) (Status, string) {
-				return probeSerpBase(ctx, client, serpbaseEndpoint, key)
-			})
-		}},
-		{"code", "grepapp", cfg.CodeBackend == "grepapp", func(ctx context.Context) (Status, string) {
-			return probeMCP(ctx, client, grepAppEndpoint, "grep.app")
-		}},
-		{"code", "sourcegraph", cfg.CodeBackend == "sourcegraph", func(ctx context.Context) (Status, string) {
-			return probeReachable(ctx, client, sourcegraphURL, "sourcegraph")
-		}},
-		{"code", "github", cfg.CodeBackend == "github", func(ctx context.Context) (Status, string) {
-			return probeGitHub(ctx, client, githubAPIBase, resolveGithub)
-		}},
-		{"docs", "context7", cfg.DocsBackend == "context7" || c7Key != "", func(ctx context.Context) (Status, string) {
-			return probeContext7(ctx, client, context7APIBase, c7Key)
-		}},
-		{"browser", browserBackendName(browser), browser != "", func(_ context.Context) (Status, string) {
-			return checkBrowser(browser)
-		}},
-		{"cookies", "jar", cookieFile != "", func(_ context.Context) (Status, string) {
-			return checkCookieFile(cookieFile)
-		}},
-		{"cache", "bbolt", true, func(_ context.Context) (Status, string) {
-			return checkCache()
-		}},
+	var specs []spec
+	for _, p := range search.Providers() {
+		specs = append(specs, spec{"search", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
 	}
+	for _, p := range code.Providers() {
+		specs = append(specs, spec{"code", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
+	}
+	for _, p := range docs.Providers() {
+		if p.Hidden {
+			continue
+		}
+		specs = append(specs, spec{"docs", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
+	}
+	return append(specs,
+		spec{"browser", browserBackendName(cfg.Browser), cfg.Browser != "", func(context.Context) (Status, string) { return checkBrowser(cfg.Browser) }},
+		spec{"cookies", "jar", cfg.CookieFile != "", func(context.Context) (Status, string) { return checkCookieFile(cfg.CookieFile) }},
+		spec{"cache", "bbolt", true, func(context.Context) (Status, string) { return checkCache() }})
 }
 
 // browserBackendName labels the browser check's backend column.

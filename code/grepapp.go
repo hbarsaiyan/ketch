@@ -1,12 +1,16 @@
 package code
 
 import (
+	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -297,4 +301,10 @@ var grepLangNames = map[string]string{
 	"html":       "HTML",
 	"css":        "CSS",
 	"sql":        "SQL",
+}
+
+func grepappProvider() Provider {
+	return Provider{ID: "grepapp", Name: "grep.app", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewGrepApp(), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeMCP(ctx, client, "https://mcp.grep.app", "grep.app")
+	}}
 }

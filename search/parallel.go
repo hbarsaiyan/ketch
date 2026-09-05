@@ -1,12 +1,16 @@
 package search
 
 import (
-	"bytes"
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/1broseidon/ketch/httpx"
@@ -186,4 +190,10 @@ func parallelStatusError(resp *http.Response) error {
 		return fmt.Errorf("parallel returned status %d: %s", resp.StatusCode, detail)
 	}
 	return fmt.Errorf("parallel returned status %d", resp.StatusCode)
+}
+
+func parallelProvider() Provider {
+	return Provider{ID: "parallel", Name: "Parallel", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewParallel(), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeMCP(ctx, client, "https://search.parallel.ai/mcp", "parallel")
+	}}
 }

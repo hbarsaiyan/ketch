@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/1broseidon/ketch/config"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 func newTestRandom(order []int, backends ...namedSearcher) *Random {

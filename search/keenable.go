@@ -1,13 +1,18 @@
 package search
 
 import (
-	"bytes"
 	"context"
+	"net/http"
+
+	"github.com/1broseidon/ketch/health"
+	config "github.com/1broseidon/ketch/internal/configbase"
+
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
+
+	"bytes"
 
 	"github.com/1broseidon/ketch/httpx"
 )
@@ -159,4 +164,48 @@ func keenableStatusError(resp *http.Response) error {
 		return fmt.Errorf("keenable returned status %d: %s", resp.StatusCode, detail)
 	}
 	return fmt.Errorf("keenable returned status %d", resp.StatusCode)
+}
+
+// ProbeKeenable checks the provider using a caller-supplied client and endpoint.
+func ProbeKeenable(ctx context.Context, client *http.Client, base, apiKey string) (health.Status, string) {
+	key := strings.TrimSpace(apiKey)
+	path := "/v1/search/public"
+	if key != "" {
+		path = "/v1/search"
+	}
+	body := strings.NewReader(`{"query":"ketch","mode":"pro"}`)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+path, body)
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Keenable-Title", "Ketch")
+	if key != "" {
+		req.Header.Set("X-API-Key", key)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return health.StatusUnreachable, health.ErrorDetail(err)
+	}
+	defer health.Drain(resp)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return health.StatusOK, ""
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return health.StatusMisconfigured, "API key rejected (ketch config set keenable_api_key <key>)"
+	case http.StatusTooManyRequests:
+		return health.StatusOK, "reachable (rate limited; set a key to lift the cap)"
+	default:
+		return health.StatusUnreachable, fmt.Sprintf("returned status %d", resp.StatusCode)
+	}
+}
+
+func keenableProvider() Provider {
+	return Provider{ID: "keenable", Name: "Keenable", Usable: func(*config.Config) bool { return true }, Configured: func(c *config.Config) bool { return len(c.KeenableKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newKeenableWithKeys(c.KeenableKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+		return health.ProbeKeyPool(c.KeenableKeys(), func(key string) (health.Status, string) {
+			return ProbeKeenable(ctx, client, "https://api.keenable.ai", key)
+		})
+	}}
 }
