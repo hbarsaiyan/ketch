@@ -148,7 +148,7 @@ func TestProbeFirecrawlSelfHostedNoKey(t *testing.T) {
 }
 
 func TestProbeTimeout(t *testing.T) {
-	searxng := spec{surface: "search", backend: "searxng"}
+	searxng := findSpec(t, buildSpecs(&config.Config{}, http.DefaultClient), "search", "searxng")
 	brave := spec{surface: "search", backend: "brave"}
 
 	if got := probeTimeout(searxng, DefaultTimeout); got != SelfHostedSearchTimeout {

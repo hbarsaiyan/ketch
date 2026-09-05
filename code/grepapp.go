@@ -1,20 +1,18 @@
 package code
 
 import (
-	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // grepAppEndpoint is the public Grep MCP server backed by the same index as
@@ -304,10 +302,10 @@ var grepLangNames = map[string]string{
 }
 
 func grepappProvider() Provider {
-	return Provider{
+	return Provider{CLIName: "Grep (mcp.grep.app; no token, literal/regex over 1M+ public repos)", Regexp: true,
 		Settings: []config.Setting{},
 		ID:       "grepapp",
-		Name:     "grep.app",
+		Name:     "Grep (mcp.grep.app)",
 		Usable:   func(*config.Config) bool { return true },
 		New:      func(c *config.Config) (Searcher, error) { return NewGrepApp(), nil },
 		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {

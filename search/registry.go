@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/1broseidon/ketch/health"
 	config "github.com/1broseidon/ketch/internal/configbase"
@@ -13,14 +14,15 @@ import (
 
 // Provider owns the wiring and health policy for one search backend.
 type Provider struct {
-	ID       string
-	Setup    string
-	Name     string
-	Hidden   bool
-	Usable   func(*config.Config) bool
-	Settings []config.Setting
-	New      func(*config.Config) (Searcher, error)
-	Probe    func(context.Context, *http.Client, *config.Config) (health.Status, string)
+	MinProbeTimeout time.Duration
+	ID              string
+	Setup           string
+	Name            string
+	Hidden          bool
+	Usable          func(*config.Config) bool
+	Settings        []config.Setting
+	New             func(*config.Config) (Searcher, error)
+	Probe           func(context.Context, *http.Client, *config.Config) (health.Status, string)
 }
 
 // Required reports whether a failing health check must fail doctor. Selection
@@ -50,7 +52,13 @@ var providers = []Provider{
 }
 
 // Providers returns the descriptors in their stable presentation order.
-func Providers() []Provider { return slices.Clone(providers) }
+func Providers() []Provider {
+	snapshot := slices.Clone(providers)
+	for i := range snapshot {
+		snapshot[i].Settings = slices.Clone(snapshot[i].Settings)
+	}
+	return snapshot
+}
 
 // AvailableBackends returns the implemented provider IDs in registry order.
 func AvailableBackends() []string {

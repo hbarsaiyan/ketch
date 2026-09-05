@@ -1,23 +1,20 @@
 package search
 
 import (
+	"bytes"
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 
-	"bytes"
-
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 type EXA struct {

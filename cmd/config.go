@@ -9,11 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/1broseidon/ketch/internal/configbase"
-
 	"github.com/1broseidon/ketch/config"
 	"github.com/1broseidon/ketch/cookies"
 	"github.com/1broseidon/ketch/extract"
+	"github.com/1broseidon/ketch/internal/configbase"
 	"github.com/1broseidon/ketch/scrape"
 	"github.com/1broseidon/ketch/urlrewrite"
 	"github.com/spf13/cobra"
@@ -114,13 +113,11 @@ func buildConfigInfo(c config.Config, path string) configInfo {
 	}
 
 	info.Providers = make(map[string]any)
-	for _, setting := range config.ProviderSettings() {
-		fields := setting.Discovery(&c)
-		info.ProviderFields = append(info.ProviderFields, fields...)
-		for _, field := range fields {
-			info.Providers[field.Name] = field.Value
-		}
+	info.ProviderFields = config.ProviderDiscovery(&c)
+	for _, field := range info.ProviderFields {
+		info.Providers[field.Name] = field.Value
 	}
+
 	return info
 }
 

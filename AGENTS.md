@@ -22,9 +22,9 @@ cmd/
   mcp.go                     MCP command: `mcp serve` runs the MCP server over stdio
   proc_unix.go               Unix process management (detach, signals)
   proc_windows.go            Windows process management stub
-search/                      Searcher interface + Brave/DDG/SearXNG/EXA/Firecrawl/Keenable/Tavily/Parallel/SerpBase backends; NewFromConfig owns the backend switch for cmd/ and mcp/. multi.go adds federated --multi search (RRF fusion, NewMultiFromConfig), canonical.go the URL dedup keys
-code/                        code.Searcher interface + GrepApp/Sourcegraph/GitHub backends; NewFromConfig owns the backend switch
-docs/                        docs.Searcher interface + Context7 backend (FTS5 local is an unimplemented stub); NewFromConfig owns the backend switch
+search/                      Searcher interface + Brave/DDG/SearXNG/EXA/Firecrawl/Keenable/Tavily/Parallel/SerpBase backends; NewFromConfig resolves the ordered provider registry for cmd/ and mcp/. multi.go adds federated --multi search (RRF fusion, NewMultiFromConfig), canonical.go the URL dedup keys
+code/                        code.Searcher interface + GrepApp/Sourcegraph/GitHub backends; NewFromConfig resolves the ordered provider registry
+docs/                        docs.Searcher interface + Context7 backend (FTS5 local is an unimplemented stub); NewFromConfig resolves the ordered provider registry
 mcp/                         MCP server (search/code/docs/scrape/crawl tools; the mcp_tools config key is an allowlist over the published set) over the go-sdk mcp package; Server struct holds the shared scraper + cache, tools call the same NewFromConfig constructors as the CLI
 scrape/                      HTTP fetch + Page type, JS detection fallback, Rod browser; pipeline.go has the cache-aware scrape pipeline (CachedScrape*, ScrapeSelector, FetchLLMSTxt) shared by cmd/ and mcp/
 extract/                     readability + html-to-markdown pipeline, JS shell detection (Detector: built-in + config spa_markers, modern hydration/streaming frameworks)
@@ -147,3 +147,17 @@ ketch mcp serve                             # run as an MCP server over stdio (s
 | --concurrency | scrape | 5 | Max concurrent requests for multi-URL scraping |
 | --force-browser | scrape | false | Always render via the configured browser, skipping JS-shell auto-detection (composes with --raw/--select; errors without a browser) |
 | --cookie-file <path> | scrape, search --scrape, crawl | config `cookie_file` or off | Netscape cookies.txt jar; flag overrides config and an explicit empty value disables cookies |
+
+
+## Adding a provider
+
+Add the implementation, descriptor, and health probe in one Go file under `search/`, `code/`, or `docs/`, plus its tests. Add one descriptor call to that package's ordered `providers` slice in `registry.go`. Config keys, environment overrides, redacted discovery, doctor, CLI backend lists, MCP descriptions, and search multi/random eligibility then follow the descriptor. Do not add provider switches to consumers or register through `init()`.
+
+- Define `ID`, `Name`, `Settings`, `Usable`, `New`, and `Probe`. `Usable` checks configuration without network I/O; `Build` applies it before `New`. Factories only construct clients and must also accept empty credentials; they never probe or validate credentials themselves.
+- Import `internal/configbase` as `config` inside provider packages to avoid the public config facade's dependency on all three registries. The public `config.Config` is an alias for the same model. Read settings with `String`/`Strings`, and use `SetProvider` for overrides so shared MCP config is not mutated.
+- Use `config.KeyPool("example_api_key", "example_api_keys")` for rotating credentials, or a `config.Setting` for a scalar URL or token. Provider settings own defaults, secret handling, and optional token resolution. Existing order numbers preserve legacy JSON and environment presentation; new key pools need no order numbers.
+- Doctor checks every provider. Selection or explicitly configured credentials make a failed check required; this differs from usability (a selected provider with a missing key must still fail doctor). `GateDoctor` marks settings that trigger this requirement. Search providers may declare `MinProbeTimeout` for slow self-hosted probes.
+- Code providers declare regex support in their descriptor. Docs providers may implement `docs.LibraryResolver` for library resolution and direct lookup; consumers assert the interface, with no capability bitflags. Keep the unimplemented local docs provider hidden.
+- Test requests, result mapping, authentication, cancellation, and relevant error/retry behavior. Run `make lint` and `make test`; config and doctor golden fixtures must stay unchanged for a refactor. The cross-package completion test in `search/registry_test.go` demonstrates one registration flowing through every consumer.
+
+The existing provider-specific config accessors remain compatibility helpers; adding a provider does not require adding another accessor. Static documentation may need an explanatory update when a new provider is approved, but it is not executable registration. Provider admission and recommendation are separate product decisions.

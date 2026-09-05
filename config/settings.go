@@ -26,3 +26,12 @@ func ProviderSettings() []Setting {
 	}
 	return settings
 }
+
+// ProviderDiscovery returns the ordered, redacted provider fields used by ketch config.
+func ProviderDiscovery(c *Config) []configbase.Field {
+	var fields []configbase.Field
+	for _, s := range ProviderSettings() {
+		fields = append(fields, s.Discovery(c)...)
+	}
+	return fields
+}

@@ -2,18 +2,16 @@ package search
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // serpbaseEndpoint is the hosted SerpBase Google Search API. Auth is a

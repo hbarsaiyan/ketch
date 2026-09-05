@@ -136,28 +136,14 @@ func (c Config) WithSettings(settings []Setting) Config {
 
 // String reads a scalar provider setting without mutating shared configuration.
 func (c Config) String(key string) string {
-	switch value := c.ProviderSettings[key].(type) {
-	case string:
-		return value
-	case *string:
-		if value != nil {
-			return *value
-		}
-	}
-	return ""
+	value, _ := c.ProviderSettings[key].(string)
+	return value
 }
 
 // Strings returns an immutable copy of a provider's configured key list.
 func (c Config) Strings(key string) []string {
-	switch value := c.ProviderSettings[key].(type) {
-	case []string:
-		return slices.Clone(value)
-	case *[]string:
-		if value != nil {
-			return slices.Clone(*value)
-		}
-	}
-	return nil
+	value, _ := c.ProviderSettings[key].([]string)
+	return slices.Clone(value)
 }
 
 // SetProvider copies the settings map before mutation, preserving value-copy
@@ -311,8 +297,10 @@ func (c *Config) decodeSetting(raw map[string]json.RawMessage, key string, list 
 }
 
 func (c *Config) decodeWithoutSchema(data []byte, raw map[string]json.RawMessage) error {
-	for _, f := range StructFields(*c) {
-		delete(raw, f.Name)
+	typ := reflect.TypeOf(*c)
+	for i := 0; i < typ.NumField(); i++ {
+		name, _, _ := strings.Cut(typ.Field(i).Tag.Get("json"), ",")
+		delete(raw, name)
 	}
 	for key, value := range raw {
 		if bytes.HasPrefix(bytes.TrimSpace(value), []byte("[")) {
@@ -343,4 +331,12 @@ func (c *Config) decodeWithoutSchema(data []byte, raw map[string]json.RawMessage
 		}
 	}
 	return nil
+}
+
+// JoinNames preserves the established human-readable provider list format.
+func JoinNames(names []string) string {
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + ", or " + names[len(names)-1]
 }

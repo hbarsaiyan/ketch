@@ -2,6 +2,7 @@ package code
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 
@@ -12,6 +13,9 @@ import (
 // Provider owns the wiring and health policy for one code backend.
 type Provider struct {
 	ID       string
+	CLIName  string
+	Regexp   bool
+	Setup    string
 	Name     string
 	Hidden   bool
 	Usable   func(*config.Config) bool
@@ -41,7 +45,13 @@ var providers = []Provider{
 }
 
 // Providers returns the descriptors in their stable presentation order.
-func Providers() []Provider { return slices.Clone(providers) }
+func Providers() []Provider {
+	snapshot := slices.Clone(providers)
+	for i := range snapshot {
+		snapshot[i].Settings = slices.Clone(snapshot[i].Settings)
+	}
+	return snapshot
+}
 
 // AvailableBackends returns the implemented provider IDs in registry order.
 func AvailableBackends() []string {
@@ -60,6 +70,51 @@ func ProviderNames() []string {
 	for _, p := range providers {
 		if !p.Hidden {
 			names = append(names, p.Name)
+		}
+	}
+	return names
+}
+
+// Lookup returns a descriptor without constructing a client.
+func Lookup(id string) (Provider, bool) {
+	for _, p := range providers {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return Provider{}, false
+}
+
+// Build checks the descriptor's usability before constructing a client.
+func (p Provider) Build(c *config.Config) (Searcher, error) {
+	if !p.Usable(c) {
+		return nil, errors.New(p.Setup)
+	}
+	return p.New(c)
+}
+
+// DescriptionNames returns ordered display names for CLI or MCP descriptions.
+func DescriptionNames(cli bool) string {
+	var names []string
+	for _, p := range providers {
+		if p.Hidden {
+			continue
+		}
+		name := p.Name
+		if cli && p.CLIName != "" {
+			name = p.CLIName
+		}
+		names = append(names, name)
+	}
+	return config.JoinNames(names)
+}
+
+// RegexpBackends reports providers implementing the existing regex query option.
+func RegexpBackends() []string {
+	var names []string
+	for _, p := range providers {
+		if p.Regexp {
+			names = append(names, p.ID)
 		}
 	}
 	return names

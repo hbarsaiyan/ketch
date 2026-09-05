@@ -1,19 +1,17 @@
 package search
 
 import (
-	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 const (

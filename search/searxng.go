@@ -2,17 +2,16 @@ package search
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
+	"time"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // SearXNG searches a SearXNG instance via its JSON API.
@@ -109,11 +108,12 @@ func ProbeSearxng(ctx context.Context, client *http.Client, baseURL string) (hea
 
 func searxngProvider() Provider {
 	return Provider{
-		Settings: []config.Setting{{Key: "searxng_url", ValidationOrder: 1, Default: "http://localhost:8081", FileOrder: 1, DiscoveryOrder: 2, EnvOrder: 1, Always: true}},
-		ID:       "searxng",
-		Name:     "SearXNG",
-		Usable:   func(*config.Config) bool { return true },
-		New:      func(c *config.Config) (Searcher, error) { return NewSearXNG(c.String("searxng_url")), nil },
+		MinProbeTimeout: 10 * time.Second,
+		Settings:        []config.Setting{{Key: "searxng_url", ValidationOrder: 1, Default: "http://localhost:8081", FileOrder: 1, DiscoveryOrder: 2, EnvOrder: 1, Always: true}},
+		ID:              "searxng",
+		Name:            "SearXNG",
+		Usable:          func(*config.Config) bool { return true },
+		New:             func(c *config.Config) (Searcher, error) { return NewSearXNG(c.String("searxng_url")), nil },
 		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
 			return ProbeSearxng(ctx, client, c.String("searxng_url"))
 		},

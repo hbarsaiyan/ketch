@@ -1,20 +1,17 @@
 package search
 
 import (
+	"bytes"
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
-	"bytes"
-
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // tavilyEndpoint is the hosted Tavily search API. Auth is Bearer-only in the

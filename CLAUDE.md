@@ -219,3 +219,17 @@ GoReleaser + GitHub Actions (`.goreleaser.yaml`, `.github/workflows/release.yml`
 ### What's Next
 
 1. Local FTS5 SQLite docs backend (`-b local`) for offline/private docs
+
+
+### Adding a provider
+
+Add the implementation, descriptor, and health probe in one Go file under `search/`, `code/`, or `docs/`, plus its tests. Add one descriptor call to that package's ordered `providers` slice in `registry.go`. Config keys, environment overrides, redacted discovery, doctor, CLI backend lists, MCP descriptions, and search multi/random eligibility then follow the descriptor. Do not add provider switches to consumers or register through `init()`.
+
+- Define `ID`, `Name`, `Settings`, `Usable`, `New`, and `Probe`. `Usable` checks configuration without network I/O; `Build` applies it before `New`. Factories only construct clients and must also accept empty credentials; they never probe or validate credentials themselves.
+- Import `internal/configbase` as `config` inside provider packages to avoid the public config facade's dependency on all three registries. The public `config.Config` is an alias for the same model. Read settings with `String`/`Strings`, and use `SetProvider` for overrides so shared MCP config is not mutated.
+- Use `config.KeyPool("example_api_key", "example_api_keys")` for rotating credentials, or a `config.Setting` for a scalar URL or token. Provider settings own defaults, secret handling, and optional token resolution. Existing order numbers preserve legacy JSON and environment presentation; new key pools need no order numbers.
+- Doctor checks every provider. Selection or explicitly configured credentials make a failed check required; this differs from usability (a selected provider with a missing key must still fail doctor). `GateDoctor` marks settings that trigger this requirement. Search providers may declare `MinProbeTimeout` for slow self-hosted probes.
+- Code providers declare regex support in their descriptor. Docs providers may implement `docs.LibraryResolver` for library resolution and direct lookup; consumers assert the interface, with no capability bitflags. Keep the unimplemented local docs provider hidden.
+- Test requests, result mapping, authentication, cancellation, and relevant error/retry behavior. Run `make lint` and `make test`; config and doctor golden fixtures must stay unchanged for a refactor. The cross-package completion test in `search/registry_test.go` demonstrates one registration flowing through every consumer.
+
+The existing provider-specific config accessors remain compatibility helpers; adding a provider does not require adding another accessor. Static documentation may need an explanatory update when a new provider is approved, but it is not executable registration. Provider admission and recommendation are separate product decisions.

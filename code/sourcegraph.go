@@ -1,19 +1,17 @@
 package code
 
 import (
-	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // Sourcegraph searches code via the Sourcegraph streaming search API.
@@ -148,7 +146,7 @@ func (s *Sourcegraph) parseSSE(resp *http.Response, limit int) ([]Result, error)
 }
 
 func sourcegraphProvider() Provider {
-	return Provider{
+	return Provider{Regexp: true,
 		Settings: []config.Setting{{Key: "sourcegraph_url", ValidationOrder: 21, Default: "https://sourcegraph.com", FileOrder: 21, DiscoveryOrder: 24, EnvOrder: 15}},
 		ID:       "sourcegraph",
 		Name:     "Sourcegraph",

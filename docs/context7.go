@@ -2,16 +2,14 @@ package docs
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // Context7 searches library documentation via the Context7 API.
@@ -210,7 +208,7 @@ func ProbeContext7(ctx context.Context, client *http.Client, apiBase, apiKey str
 }
 
 func context7Provider() Provider {
-	return Provider{
+	return Provider{Setup: "context7: API key not set (get one then: ketch config set context7_api_key <key>)", LibrarySetup: "context7: API key not set (set with: ketch config set context7_api_key <key>)",
 		Settings: []config.Setting{{Key: "context7_api_key", ValidationOrder: 20, Secret: true, GateDoctor: true, FileOrder: 20, DiscoveryOrder: 23, EnvOrder: 14}},
 		ID:       "context7",
 		Name:     "Context7",

@@ -1,23 +1,20 @@
 package code
 
 import (
+	"bytes"
 	"context"
-	"net/http"
-
-	"github.com/1broseidon/ketch/health"
-	config "github.com/1broseidon/ketch/internal/configbase"
-
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
-	"strings"
-
-	"bytes"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/1broseidon/ketch/health"
 	"github.com/1broseidon/ketch/httpx"
+	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
 // GitHub searches code via the GitHub Code Search REST API.
@@ -289,10 +286,13 @@ func ProbeGitHub(ctx context.Context, client *http.Client, apiBase string, resol
 }
 
 func githubProvider() Provider {
-	return Provider{
+	return Provider{Setup: `github code search: no token found.
+  - explicit:   ketch config set github_token <token>
+  - env var:    export GITHUB_TOKEN=<token>
+  - or run:     gh auth login`,
 		Settings: []config.Setting{{Key: "github_token", ValidationOrder: 22, Secret: true, Token: true, ManualEnv: true, FileOrder: 22, DiscoveryOrder: 25, Resolve: func(c *config.Config) (string, string) { return c.ResolveGithubToken() }}},
 		ID:       "github",
-		Name:     "GitHub",
+		Name:     "GitHub Code Search",
 		Usable:   func(c *config.Config) bool { k, _ := c.ResolveGithubToken(); return k != "" },
 		New: func(c *config.Config) (Searcher, error) {
 			token, _ := c.ResolveGithubToken()

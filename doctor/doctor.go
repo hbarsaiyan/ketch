@@ -51,10 +51,11 @@ func (c Check) Bad() bool {
 
 // spec describes one check before it runs.
 type spec struct {
-	surface  string
-	backend  string
-	required bool
-	probe    func(ctx context.Context) (Status, string)
+	minTimeout time.Duration
+	surface    string
+	backend    string
+	required   bool
+	probe      func(ctx context.Context) (Status, string)
 }
 
 // DefaultTimeout is the per-probe timeout. Probes run concurrently, so the
@@ -67,12 +68,10 @@ const DefaultTimeout = 3 * time.Second
 // DefaultTimeout, so the default budget reports healthy instances as timed out.
 const SelfHostedSearchTimeout = 10 * time.Second
 
-// probeTimeout returns the budget for one probe. Backends that query hosted
-// APIs answer well inside the run timeout; searxng runs the search itself, so
-// it gets the longer budget unless the caller already asked for more.
+// probeTimeout respects provider-owned minimum budgets and longer caller budgets.
 func probeTimeout(s spec, runTimeout time.Duration) time.Duration {
-	if s.surface == "search" && s.backend == "searxng" && runTimeout < SelfHostedSearchTimeout {
-		return SelfHostedSearchTimeout
+	if s.minTimeout > runTimeout {
+		return s.minTimeout
 	}
 	return runTimeout
 }
@@ -116,21 +115,21 @@ func Run(ctx context.Context, cfg *config.Config, timeout time.Duration) []Check
 func buildSpecs(cfg *config.Config, client *http.Client) []spec {
 	var specs []spec
 	for _, p := range search.Providers() {
-		specs = append(specs, spec{"search", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
+		specs = append(specs, spec{p.MinProbeTimeout, "search", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
 	}
 	for _, p := range code.Providers() {
-		specs = append(specs, spec{"code", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
+		specs = append(specs, spec{0, "code", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
 	}
 	for _, p := range docs.Providers() {
 		if p.Hidden {
 			continue
 		}
-		specs = append(specs, spec{"docs", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
+		specs = append(specs, spec{0, "docs", p.ID, p.Required(cfg), func(ctx context.Context) (Status, string) { return p.Probe(ctx, client, cfg) }})
 	}
 	return append(specs,
-		spec{"browser", browserBackendName(cfg.Browser), cfg.Browser != "", func(context.Context) (Status, string) { return checkBrowser(cfg.Browser) }},
-		spec{"cookies", "jar", cfg.CookieFile != "", func(context.Context) (Status, string) { return checkCookieFile(cfg.CookieFile) }},
-		spec{"cache", "bbolt", true, func(context.Context) (Status, string) { return checkCache() }})
+		spec{0, "browser", browserBackendName(cfg.Browser), cfg.Browser != "", func(context.Context) (Status, string) { return checkBrowser(cfg.Browser) }},
+		spec{0, "cookies", "jar", cfg.CookieFile != "", func(context.Context) (Status, string) { return checkCookieFile(cfg.CookieFile) }},
+		spec{0, "cache", "bbolt", true, func(context.Context) (Status, string) { return checkCache() }})
 }
 
 // browserBackendName labels the browser check's backend column.
