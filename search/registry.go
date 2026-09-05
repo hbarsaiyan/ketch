@@ -2,8 +2,10 @@ package search
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/1broseidon/ketch/health"
 	config "github.com/1broseidon/ketch/internal/configbase"
@@ -12,6 +14,7 @@ import (
 // Provider owns the wiring and health policy for one search backend.
 type Provider struct {
 	ID         string
+	Setup      string
 	Name       string
 	Hidden     bool
 	Usable     func(*config.Config) bool
@@ -61,4 +64,31 @@ func ProviderNames() []string {
 		}
 	}
 	return names
+}
+
+// Lookup finds a provider without constructing it or accessing the network.
+func Lookup(id string) (Provider, bool) {
+	for _, p := range providers {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return Provider{}, false
+}
+
+// Build applies the provider's one usability predicate before construction.
+func (p Provider) Build(cfg *config.Config) (Searcher, error) {
+	if !p.Usable(cfg) {
+		return nil, errors.New(p.Setup)
+	}
+	return p.New(cfg)
+}
+
+// DescriptionNames formats provider display names for CLI and MCP help.
+func DescriptionNames() string {
+	names := ProviderNames()
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + ", or " + names[len(names)-1]
 }

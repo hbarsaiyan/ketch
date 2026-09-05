@@ -158,7 +158,7 @@ func ProbeBrave(ctx context.Context, client *http.Client, endpoint, apiKey strin
 }
 
 func braveProvider() Provider {
-	return Provider{ID: "brave", Name: "Brave", Usable: func(c *config.Config) bool { return len(c.BraveKeys()) > 0 }, Configured: func(c *config.Config) bool { return len(c.BraveKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newBraveWithKeys(c.BraveKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+	return Provider{ID: "brave", Setup: "brave: API key not set (get one free at https://brave.com/search/api/ then: ketch config set brave_api_key <key>)", Name: "Brave", Usable: func(c *config.Config) bool { return len(c.BraveKeys()) > 0 }, Configured: func(c *config.Config) bool { return len(c.BraveKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newBraveWithKeys(c.BraveKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
 		return health.ProbeKeyPool(c.BraveKeys(), func(key string) (health.Status, string) {
 			return ProbeBrave(ctx, client, "https://api.search.brave.com/res/v1/web/search", key)
 		})

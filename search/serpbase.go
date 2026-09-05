@@ -176,7 +176,7 @@ func ProbeSerpBase(ctx context.Context, client *http.Client, endpoint, apiKey st
 }
 
 func serpbaseProvider() Provider {
-	return Provider{ID: "serpbase", Name: "SerpBase", Usable: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, Configured: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newSerpBaseWithKeys(c.SerpBaseKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+	return Provider{ID: "serpbase", Setup: "serpbase: API key not set (get a free key at https://serpbase.dev then: ketch config set serpbase_api_key <key>)", Name: "SerpBase", Usable: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, Configured: func(c *config.Config) bool { return len(c.SerpBaseKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newSerpBaseWithKeys(c.SerpBaseKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
 		return health.ProbeKeyPool(c.SerpBaseKeys(), func(key string) (health.Status, string) {
 			return ProbeSerpBase(ctx, client, "https://api.serpbase.dev/google/search", key)
 		})

@@ -215,7 +215,7 @@ func firecrawlLivenessStatus(code int, key string) (health.Status, string) {
 }
 
 func firecrawlProvider() Provider {
-	return Provider{ID: "firecrawl", Name: "Firecrawl", Usable: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 || !c.IsDefaultFirecrawlURL() }, Configured: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) {
+	return Provider{ID: "firecrawl", Setup: "firecrawl: API key not set (get one free at https://firecrawl.dev then: ketch config set firecrawl_api_key <key>)", Name: "Firecrawl", Usable: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 || !c.IsDefaultFirecrawlURL() }, Configured: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) {
 		return newFirecrawlWithKeys(c.FirecrawlKeys(), c.EffectiveFirecrawlURL()), nil
 	}, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
 		return health.ProbeKeyPool(c.FirecrawlKeys(), func(key string) (health.Status, string) {
