@@ -20,7 +20,7 @@ func NewFromConfig(cfg *config.Config, backend, searxngURL string) (Searcher, er
 	}
 	c := *cfg
 	if searxngURL != "" {
-		c.SearxngURL = searxngURL
+		c.SetProvider("searxng_url", searxngURL)
 	}
 	return p.Build(&c)
 }

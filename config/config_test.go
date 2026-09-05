@@ -43,7 +43,7 @@ func TestMergeKeys(t *testing.T) {
 }
 
 func TestEffectiveKeysReturnCopies(t *testing.T) {
-	cfg := Config{BraveAPIKey: "one", BraveAPIKeys: []string{"two"}}
+	cfg := Config{ProviderSettings: map[string]any{"brave_api_key": "one", "brave_api_keys": []string{"two"}}}
 	first := cfg.BraveKeys()
 	first[0] = "changed"
 	if got := cfg.BraveKeys(); !reflect.DeepEqual(got, []string{"one", "two"}) {
@@ -64,7 +64,7 @@ func TestSaveEnforcesPrivateMode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Save(Config{BraveAPIKey: "secret"}); err != nil {
+	if err := Save(Config{ProviderSettings: map[string]any{"brave_api_key": "secret"}}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(path)

@@ -28,8 +28,8 @@ func TestApplyConfigSetAPIKeysRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(loaded.BraveAPIKeys, []string{"k1", "k2"}) {
-		t.Fatalf("round-tripped keys = %v", loaded.BraveAPIKeys)
+	if !reflect.DeepEqual(loaded.Strings("brave_api_keys"), []string{"k1", "k2"}) {
+		t.Fatalf("round-tripped keys = %v", loaded.Strings("brave_api_keys"))
 	}
 }
 
@@ -37,12 +37,12 @@ func TestApplyConfigSetAPIKeysInvalid(t *testing.T) {
 	for _, value := range []string{`not-json`, `null`, `{"key":"value"}`} {
 		t.Run(value, func(t *testing.T) {
 			cfg := config.Defaults()
-			cfg.BraveAPIKeys = []string{"existing"}
+			cfg.SetProvider("brave_api_keys", []string{"existing"})
 			if err := applyConfigSet(&cfg, "brave_api_keys", value); err == nil {
 				t.Fatal("expected JSON array validation error")
 			}
-			if !reflect.DeepEqual(cfg.BraveAPIKeys, []string{"existing"}) {
-				t.Fatalf("invalid input modified keys: %v", cfg.BraveAPIKeys)
+			if !reflect.DeepEqual(cfg.Strings("brave_api_keys"), []string{"existing"}) {
+				t.Fatalf("invalid input modified keys: %v", cfg.Strings("brave_api_keys"))
 			}
 		})
 	}
@@ -50,22 +50,22 @@ func TestApplyConfigSetAPIKeysInvalid(t *testing.T) {
 
 func TestApplyConfigSetAPIKeysEmptyClears(t *testing.T) {
 	cfg := config.Defaults()
-	cfg.BraveAPIKeys = []string{"existing"}
+	cfg.SetProvider("brave_api_keys", []string{"existing"})
 	if err := applyConfigSet(&cfg, "brave_api_keys", `[]`); err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg.BraveAPIKeys) != 0 {
-		t.Fatalf("keys = %v, want empty", cfg.BraveAPIKeys)
+	if len(cfg.Strings("brave_api_keys")) != 0 {
+		t.Fatalf("keys = %v, want empty", cfg.Strings("brave_api_keys"))
 	}
 }
 
 func TestBuildConfigInfoReportsEffectiveKeyCountsWithoutValues(t *testing.T) {
 	cfg := config.Defaults()
-	cfg.BraveAPIKey = "singular-secret"
-	cfg.BraveAPIKeys = []string{"plural-secret", "singular-secret"}
+	cfg.SetProvider("brave_api_key", "singular-secret")
+	cfg.SetProvider("brave_api_keys", []string{"plural-secret", "singular-secret"})
 	info := buildConfigInfo(cfg, "/tmp/config.json")
-	if !info.BraveAPIKeySet || info.BraveAPIKeysCount != 2 {
-		t.Fatalf("key discovery = set:%v count:%d", info.BraveAPIKeySet, info.BraveAPIKeysCount)
+	if info.Providers["brave_api_key_set"] != true || info.Providers["brave_api_keys_count"] != 2 {
+		t.Fatalf("key discovery = set:%v count:%d", info.Providers["brave_api_key_set"], info.Providers["brave_api_keys_count"])
 	}
 	data, err := json.Marshal(info)
 	if err != nil {
@@ -122,8 +122,8 @@ func TestRunConfigSetNeverEchoesSecrets(t *testing.T) {
 
 func TestConfigSetAcknowledgementUsesEffectiveKeyCount(t *testing.T) {
 	cfg := config.Defaults()
-	cfg.BraveAPIKey = "first"
-	cfg.BraveAPIKeys = []string{"first", "second", " "}
+	cfg.SetProvider("brave_api_key", "first")
+	cfg.SetProvider("brave_api_keys", []string{"first", "second", " "})
 	if got := configSetAcknowledgement(cfg, "brave_api_keys", "unused"); got != "set brave_api_keys (2 keys)" {
 		t.Fatalf("acknowledgement = %q, want effective de-duplicated count", got)
 	}
@@ -171,12 +171,12 @@ func TestApplyConfigSetFirecrawlURL(t *testing.T) {
 	if err := applyConfigSet(&c, "firecrawl_url", "http://localhost:3002"); err != nil {
 		t.Fatal(err)
 	}
-	if c.FirecrawlURL != "http://localhost:3002" {
-		t.Fatalf("FirecrawlURL = %q", c.FirecrawlURL)
+	if c.String("firecrawl_url") != "http://localhost:3002" {
+		t.Fatalf("FirecrawlURL = %q", c.String("firecrawl_url"))
 	}
 	info := buildConfigInfo(c, "/tmp/config.json")
-	if info.FirecrawlURL != "http://localhost:3002" {
-		t.Fatalf("discovery firecrawl_url = %q", info.FirecrawlURL)
+	if info.Providers["firecrawl_url"] != "http://localhost:3002" {
+		t.Fatalf("discovery firecrawl_url = %q", info.Providers["firecrawl_url"])
 	}
 }
 

@@ -210,7 +210,14 @@ func ProbeContext7(ctx context.Context, client *http.Client, apiBase, apiKey str
 }
 
 func context7Provider() Provider {
-	return Provider{ID: "context7", Name: "Context7", Usable: func(c *config.Config) bool { return c.Context7APIKey != "" }, Configured: func(c *config.Config) bool { return c.Context7APIKey != "" }, New: func(c *config.Config) (Searcher, error) { return NewContext7(c.Context7APIKey), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return ProbeContext7(ctx, client, "https://context7.com", c.Context7APIKey)
-	}}
+	return Provider{
+		Settings: []config.Setting{{Key: "context7_api_key", ValidationOrder: 20, Secret: true, GateDoctor: true, FileOrder: 20, DiscoveryOrder: 23, EnvOrder: 14}},
+		ID:       "context7",
+		Name:     "Context7",
+		Usable:   func(c *config.Config) bool { return c.String("context7_api_key") != "" },
+		New:      func(c *config.Config) (Searcher, error) { return NewContext7(c.String("context7_api_key")), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return ProbeContext7(ctx, client, "https://context7.com", c.String("context7_api_key"))
+		},
+	}
 }

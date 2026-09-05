@@ -304,7 +304,14 @@ var grepLangNames = map[string]string{
 }
 
 func grepappProvider() Provider {
-	return Provider{ID: "grepapp", Name: "grep.app", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewGrepApp(), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return health.ProbeMCP(ctx, client, "https://mcp.grep.app", "grep.app")
-	}}
+	return Provider{
+		Settings: []config.Setting{},
+		ID:       "grepapp",
+		Name:     "grep.app",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return NewGrepApp(), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return health.ProbeMCP(ctx, client, "https://mcp.grep.app", "grep.app")
+		},
+	}
 }

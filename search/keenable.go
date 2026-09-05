@@ -203,9 +203,16 @@ func ProbeKeenable(ctx context.Context, client *http.Client, base, apiKey string
 }
 
 func keenableProvider() Provider {
-	return Provider{ID: "keenable", Name: "Keenable", Usable: func(*config.Config) bool { return true }, Configured: func(c *config.Config) bool { return len(c.KeenableKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newKeenableWithKeys(c.KeenableKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return health.ProbeKeyPool(c.KeenableKeys(), func(key string) (health.Status, string) {
-			return ProbeKeenable(ctx, client, "https://api.keenable.ai", key)
-		})
-	}}
+	return Provider{
+		Settings: []config.Setting{config.KeyPool("keenable_api_key", "keenable_api_keys", 9, 10, 6, 9)},
+		ID:       "keenable",
+		Name:     "Keenable",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return newKeenableWithKeys(c.KeenableKeys()), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return health.ProbeKeyPool(c.KeenableKeys(), func(key string) (health.Status, string) {
+				return ProbeKeenable(ctx, client, "https://api.keenable.ai", key)
+			})
+		},
+	}
 }

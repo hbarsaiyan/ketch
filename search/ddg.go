@@ -124,7 +124,14 @@ func ProbeDDG(ctx context.Context, client *http.Client, endpoint string) (health
 }
 
 func ddgProvider() Provider {
-	return Provider{ID: "ddg", Name: "DuckDuckGo", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewDDG(), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return ProbeDDG(ctx, client, "https://html.duckduckgo.com/html/")
-	}}
+	return Provider{
+		Settings: []config.Setting{},
+		ID:       "ddg",
+		Name:     "DuckDuckGo",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return NewDDG(), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return ProbeDDG(ctx, client, "https://html.duckduckgo.com/html/")
+		},
+	}
 }

@@ -71,11 +71,11 @@ func runDocs(cmd *cobra.Command, args []string) error {
 }
 
 func runDocsResolve(cmd *cobra.Command, query string, limit int, asJSON bool) error {
-	if cfg.Context7APIKey == "" {
+	if cfg.String("context7_api_key") == "" {
 		return exitErrf(ExitPrecondition, "context7: API key not set (get one then: ketch config set context7_api_key <key>)")
 	}
 
-	c7 := docs.NewContext7(cfg.Context7APIKey)
+	c7 := docs.NewContext7(cfg.String("context7_api_key"))
 	matches, err := c7.ResolveLibrary(cmd.Context(), query, limit)
 	if err != nil {
 		return upstreamErr(err, "resolve failed")
@@ -92,11 +92,11 @@ func runDocsResolve(cmd *cobra.Command, query string, limit int, asJSON bool) er
 }
 
 func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens int, asJSON bool, minimal bool) error {
-	if cfg.Context7APIKey == "" {
+	if cfg.String("context7_api_key") == "" {
 		return exitErrf(ExitPrecondition, "context7: API key not set (get one then: ketch config set context7_api_key <key>)")
 	}
 
-	c7 := docs.NewContext7(cfg.Context7APIKey)
+	c7 := docs.NewContext7(cfg.String("context7_api_key"))
 	results, err := c7.GetDocs(cmd.Context(), library, query, tokens)
 	if err != nil {
 		return upstreamErr(err, "docs fetch failed")

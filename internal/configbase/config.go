@@ -13,36 +13,22 @@ import (
 
 // Config holds user-configurable defaults for ketch.
 type Config struct {
-	Backend                            string            `json:"backend"`
-	SearxngURL                         string            `json:"searxng_url"`
-	BraveAPIKey                        string            `json:"brave_api_key,omitempty"`
-	BraveAPIKeys                       []string          `json:"brave_api_keys,omitempty"`
-	ExaAPIKey                          string            `json:"exa_api_key,omitempty"`
-	ExaAPIKeys                         []string          `json:"exa_api_keys,omitempty"`
-	FirecrawlAPIKey                    string            `json:"firecrawl_api_key,omitempty"`
-	FirecrawlAPIKeys                   []string          `json:"firecrawl_api_keys,omitempty"`
-	FirecrawlURL                       string            `json:"firecrawl_url,omitempty"` // base URL; empty = DefaultFirecrawlURL
-	KeenableAPIKey                     string            `json:"keenable_api_key,omitempty"`
-	KeenableAPIKeys                    []string          `json:"keenable_api_keys,omitempty"`
-	TavilyAPIKey                       string            `json:"tavily_api_key,omitempty"`
-	TavilyAPIKeys                      []string          `json:"tavily_api_keys,omitempty"`
-	SerpBaseAPIKey                     string            `json:"serpbase_api_key,omitempty"`
-	SerpBaseAPIKeys                    []string          `json:"serpbase_api_keys,omitempty"`
-	Limit                              int               `json:"limit"`
-	CacheTTL                           string            `json:"cache_ttl"`
-	Browser                            string            `json:"browser,omitempty"` // "chrome", "chromium", or absolute path; empty = disabled
-	CodeBackend                        string            `json:"code_backend,omitempty"`
-	DocsBackend                        string            `json:"docs_backend,omitempty"`
-	Context7APIKey                     string            `json:"context7_api_key,omitempty"`
-	SourcegraphURL                     string            `json:"sourcegraph_url,omitempty"`
-	GithubToken                        string            `json:"github_token,omitempty"`
-	URLRewrites                        []urlrewrite.Rule `json:"url_rewrites,omitempty"`
-	SPAMarkers                         []string          `json:"spa_markers,omitempty"`
-	MCPTools                           []string          `json:"mcp_tools,omitempty"`   // allowlist of tools `ketch mcp serve` publishes; empty = all five
-	CookieFile                         string            `json:"cookie_file,omitempty"` // Netscape cookies.txt path; empty = disabled
-	UserAgent                          string            `json:"user_agent,omitempty"`  // HTTP User-Agent override; empty = built-in honest default
-	ExternalPDFToMDConverterCommand    string            `json:"external_pdf_to_md_converter_command,omitempty"`
-	ExternalPDFToMDConverterTimeoutSec int               `json:"external_pdf_to_md_converter_timeout_sec"`
+	Backend                            string            `json:"backend" order:"0"`
+	Limit                              int               `json:"limit" order:"15"`
+	CacheTTL                           string            `json:"cache_ttl" order:"16"`
+	Browser                            string            `json:"browser,omitempty" order:"17"` // "chrome", "chromium", or absolute path; empty = disabled
+	CodeBackend                        string            `json:"code_backend,omitempty" order:"18"`
+	DocsBackend                        string            `json:"docs_backend,omitempty" order:"19"`
+	URLRewrites                        []urlrewrite.Rule `json:"url_rewrites,omitempty" order:"23"`
+	SPAMarkers                         []string          `json:"spa_markers,omitempty" order:"24"`
+	MCPTools                           []string          `json:"mcp_tools,omitempty" order:"25"`   // allowlist of tools `ketch mcp serve` publishes; empty = all five
+	CookieFile                         string            `json:"cookie_file,omitempty" order:"26"` // Netscape cookies.txt path; empty = disabled
+	UserAgent                          string            `json:"user_agent,omitempty" order:"27"`  // HTTP User-Agent override; empty = built-in honest default
+	ExternalPDFToMDConverterCommand    string            `json:"external_pdf_to_md_converter_command,omitempty" order:"28"`
+	ExternalPDFToMDConverterTimeoutSec int               `json:"external_pdf_to_md_converter_timeout_sec" order:"29"`
+	ProviderSettings                   map[string]any    `json:"-"`
+	providerSchema                     []Setting
+	providerOrder                      map[string]int
 }
 
 // mergeKeys builds an effective key pool with the legacy singular key first.
@@ -66,24 +52,34 @@ func MergeKeys(single string, list []string) []string {
 }
 
 // BraveKeys returns an immutable copy of the effective Brave API key pool.
-func (c Config) BraveKeys() []string { return MergeKeys(c.BraveAPIKey, c.BraveAPIKeys) }
+func (c Config) BraveKeys() []string {
+	return MergeKeys(c.String("brave_api_key"), c.Strings("brave_api_keys"))
+}
 
 // ExaKeys returns an immutable copy of the effective Exa API key pool.
-func (c Config) ExaKeys() []string { return MergeKeys(c.ExaAPIKey, c.ExaAPIKeys) }
+func (c Config) ExaKeys() []string {
+	return MergeKeys(c.String("exa_api_key"), c.Strings("exa_api_keys"))
+}
 
 // FirecrawlKeys returns an immutable copy of the effective Firecrawl API key pool.
 func (c Config) FirecrawlKeys() []string {
-	return MergeKeys(c.FirecrawlAPIKey, c.FirecrawlAPIKeys)
+	return MergeKeys(c.String("firecrawl_api_key"), c.Strings("firecrawl_api_keys"))
 }
 
 // KeenableKeys returns an immutable copy of the effective Keenable API key pool.
-func (c Config) KeenableKeys() []string { return MergeKeys(c.KeenableAPIKey, c.KeenableAPIKeys) }
+func (c Config) KeenableKeys() []string {
+	return MergeKeys(c.String("keenable_api_key"), c.Strings("keenable_api_keys"))
+}
 
 // TavilyKeys returns an immutable copy of the effective Tavily API key pool.
-func (c Config) TavilyKeys() []string { return MergeKeys(c.TavilyAPIKey, c.TavilyAPIKeys) }
+func (c Config) TavilyKeys() []string {
+	return MergeKeys(c.String("tavily_api_key"), c.Strings("tavily_api_keys"))
+}
 
 // SerpBaseKeys returns an immutable copy of the effective SerpBase API key pool.
-func (c Config) SerpBaseKeys() []string { return MergeKeys(c.SerpBaseAPIKey, c.SerpBaseAPIKeys) }
+func (c Config) SerpBaseKeys() []string {
+	return MergeKeys(c.String("serpbase_api_key"), c.Strings("serpbase_api_keys"))
+}
 
 // ResolveGithubToken returns a token and the source it came from, walking the
 // resolution chain: $KETCH_GITHUB_TOKEN → explicit config → $GITHUB_TOKEN →
@@ -94,8 +90,8 @@ func (c Config) ResolveGithubToken() (token, source string) {
 	if t := os.Getenv("KETCH_GITHUB_TOKEN"); t != "" {
 		return t, "env"
 	}
-	if c.GithubToken != "" {
-		return c.GithubToken, "config"
+	if c.String("github_token") != "" {
+		return c.String("github_token"), "config"
 	}
 	if t := os.Getenv("GITHUB_TOKEN"); t != "" {
 		return t, "env"
@@ -139,7 +135,7 @@ func normalizeFirecrawlBase(base string) string {
 // EffectiveFirecrawlURL returns the Firecrawl API base URL, falling back to
 // DefaultFirecrawlURL when unset.
 func (c Config) EffectiveFirecrawlURL() string {
-	if u := normalizeFirecrawlBase(c.FirecrawlURL); u != "" {
+	if u := normalizeFirecrawlBase(c.String("firecrawl_url")); u != "" {
 		return u
 	}
 	return DefaultFirecrawlURL
@@ -164,14 +160,13 @@ func FirecrawlSearchURL(base string) string {
 
 func Defaults() Config {
 	return Config{
-		Backend:                            "brave",
-		SearxngURL:                         "http://localhost:8081",
-		FirecrawlURL:                       DefaultFirecrawlURL,
-		Limit:                              5,
-		CacheTTL:                           "72h",
-		CodeBackend:                        "grepapp",
-		DocsBackend:                        "context7",
-		SourcegraphURL:                     "https://sourcegraph.com",
+		Backend: "brave",
+
+		Limit:       5,
+		CacheTTL:    "72h",
+		CodeBackend: "grepapp",
+		DocsBackend: "context7",
+
 		ExternalPDFToMDConverterTimeoutSec: 300,
 	}
 }

@@ -14,21 +14,8 @@ import (
 // Config is the public configuration model.
 type Config = configbase.Config
 
-func Defaults() Config {
-	return Config{
-		Backend:                            "brave",
-		SearxngURL:                         "http://localhost:8081",
-		FirecrawlURL:                       DefaultFirecrawlURL,
-		Limit:                              5,
-		CacheTTL:                           "72h",
-		CodeBackend:                        "grepapp",
-		DocsBackend:                        "context7",
-		SourcegraphURL:                     "https://sourcegraph.com",
-		ExternalPDFToMDConverterTimeoutSec: 300,
-	}
-}
+func Defaults() Config { return configbase.Defaults().WithSettings(ProviderSettings()) }
 
-// AvailableBackends returns the list of known search backends.
 func AvailableBackends() []string { return search.AvailableBackends() }
 
 // AvailableCodeBackends returns the list of known code search backends.
@@ -90,6 +77,7 @@ func Load() (LoadResult, error) {
 
 // Save writes the config to disk, creating the directory if needed.
 func Save(cfg Config) error {
+	cfg = cfg.WithSettings(ProviderSettings())
 	path, err := Path()
 	if err != nil {
 		return err

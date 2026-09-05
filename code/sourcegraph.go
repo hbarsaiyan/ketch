@@ -148,7 +148,14 @@ func (s *Sourcegraph) parseSSE(resp *http.Response, limit int) ([]Result, error)
 }
 
 func sourcegraphProvider() Provider {
-	return Provider{ID: "sourcegraph", Name: "Sourcegraph", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewSourcegraph(c.SourcegraphURL), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return health.ProbeReachable(ctx, client, c.SourcegraphURL, "sourcegraph")
-	}}
+	return Provider{
+		Settings: []config.Setting{{Key: "sourcegraph_url", ValidationOrder: 21, Default: "https://sourcegraph.com", FileOrder: 21, DiscoveryOrder: 24, EnvOrder: 15}},
+		ID:       "sourcegraph",
+		Name:     "Sourcegraph",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return NewSourcegraph(c.String("sourcegraph_url")), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return health.ProbeReachable(ctx, client, c.String("sourcegraph_url"), "sourcegraph")
+		},
+	}
 }

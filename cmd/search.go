@@ -31,7 +31,7 @@ func init() {
 		"search backend: "+strings.Join(config.AvailableBackends(), ", "))
 	searchCmd.Flags().IntP("limit", "l", cfg.Limit, "max number of results")
 	searchCmd.Flags().Bool("scrape", false, "scrape full content from each result")
-	searchCmd.Flags().String("searxng-url", cfg.SearxngURL, "SearXNG instance URL")
+	searchCmd.Flags().String("searxng-url", cfg.String("searxng_url"), "SearXNG instance URL")
 	searchCmd.Flags().Int("max-chars", 0, "truncate markdown output to N chars (0 = disabled)")
 	searchCmd.Flags().Bool("trim", false, "strip markdown formatting, keep content text only")
 	searchCmd.Flags().Bool("minimal", false, "one result per line, tab-separated (url/title/snippet)")

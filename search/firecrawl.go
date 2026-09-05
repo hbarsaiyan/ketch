@@ -215,11 +215,19 @@ func firecrawlLivenessStatus(code int, key string) (health.Status, string) {
 }
 
 func firecrawlProvider() Provider {
-	return Provider{ID: "firecrawl", Setup: "firecrawl: API key not set (get one free at https://firecrawl.dev then: ketch config set firecrawl_api_key <key>)", Name: "Firecrawl", Usable: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 || !c.IsDefaultFirecrawlURL() }, Configured: func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) {
-		return newFirecrawlWithKeys(c.FirecrawlKeys(), c.EffectiveFirecrawlURL()), nil
-	}, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return health.ProbeKeyPool(c.FirecrawlKeys(), func(key string) (health.Status, string) {
-			return ProbeFirecrawl(ctx, client, config.FirecrawlSearchURL(c.EffectiveFirecrawlURL()), key)
-		})
-	}}
+	return Provider{
+		Settings: []config.Setting{config.KeyPool("firecrawl_api_key", "firecrawl_api_keys", 6, 7, 4, 6), {Key: "firecrawl_url", ValidationOrder: 8, Default: "https://api.firecrawl.dev", FileOrder: 8, DiscoveryOrder: 9, EnvOrder: 5, Display: func(c *config.Config) string { return c.EffectiveFirecrawlURL() }}},
+		ID:       "firecrawl",
+		Setup:    "firecrawl: API key not set (get one free at https://firecrawl.dev then: ketch config set firecrawl_api_key <key>)",
+		Name:     "Firecrawl",
+		Usable:   func(c *config.Config) bool { return len(c.FirecrawlKeys()) > 0 || !c.IsDefaultFirecrawlURL() },
+		New: func(c *config.Config) (Searcher, error) {
+			return newFirecrawlWithKeys(c.FirecrawlKeys(), c.EffectiveFirecrawlURL()), nil
+		},
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return health.ProbeKeyPool(c.FirecrawlKeys(), func(key string) (health.Status, string) {
+				return ProbeFirecrawl(ctx, client, config.FirecrawlSearchURL(c.EffectiveFirecrawlURL()), key)
+			})
+		},
+	}
 }

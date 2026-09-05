@@ -19,7 +19,7 @@ var ErrUnknownBackend = errors.New("unknown code backend")
 func NewFromConfig(cfg *config.Config, backend string) (Searcher, error) {
 	switch backend {
 	case "sourcegraph":
-		return NewSourcegraph(cfg.SourcegraphURL), nil
+		return NewSourcegraph(cfg.String("sourcegraph_url")), nil
 	case "grepapp":
 		return NewGrepApp(), nil
 	case "github":

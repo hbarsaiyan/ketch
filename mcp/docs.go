@@ -108,8 +108,8 @@ func (s *Server) docsForLibrary(ctx context.Context, query, library string, toke
 // context7 builds the Context7 client, classifying a missing API key as a
 // precondition failure.
 func (s *Server) context7() (*docs.Context7, error) {
-	if s.cfg.Context7APIKey == "" {
+	if s.cfg.String("context7_api_key") == "" {
 		return nil, errf(kindPrecondition, "context7: API key not set (set with: ketch config set context7_api_key <key>)")
 	}
-	return docs.NewContext7(s.cfg.Context7APIKey), nil
+	return docs.NewContext7(s.cfg.String("context7_api_key")), nil
 }

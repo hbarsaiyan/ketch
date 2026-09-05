@@ -289,10 +289,17 @@ func ProbeGitHub(ctx context.Context, client *http.Client, apiBase string, resol
 }
 
 func githubProvider() Provider {
-	return Provider{ID: "github", Name: "GitHub", Usable: func(c *config.Config) bool { k, _ := c.ResolveGithubToken(); return k != "" }, Configured: nil, New: func(c *config.Config) (Searcher, error) {
-		token, _ := c.ResolveGithubToken()
-		return NewGitHub(token), nil
-	}, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return ProbeGitHub(ctx, client, "https://api.github.com", c.ResolveGithubToken)
-	}}
+	return Provider{
+		Settings: []config.Setting{{Key: "github_token", ValidationOrder: 22, Secret: true, Token: true, ManualEnv: true, FileOrder: 22, DiscoveryOrder: 25, Resolve: func(c *config.Config) (string, string) { return c.ResolveGithubToken() }}},
+		ID:       "github",
+		Name:     "GitHub",
+		Usable:   func(c *config.Config) bool { k, _ := c.ResolveGithubToken(); return k != "" },
+		New: func(c *config.Config) (Searcher, error) {
+			token, _ := c.ResolveGithubToken()
+			return NewGitHub(token), nil
+		},
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return ProbeGitHub(ctx, client, "https://api.github.com", c.ResolveGithubToken)
+		},
+	}
 }

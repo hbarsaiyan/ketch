@@ -108,7 +108,14 @@ func ProbeSearxng(ctx context.Context, client *http.Client, baseURL string) (hea
 }
 
 func searxngProvider() Provider {
-	return Provider{ID: "searxng", Name: "SearXNG", Usable: func(*config.Config) bool { return true }, Configured: nil, New: func(c *config.Config) (Searcher, error) { return NewSearXNG(c.SearxngURL), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return ProbeSearxng(ctx, client, c.SearxngURL)
-	}}
+	return Provider{
+		Settings: []config.Setting{{Key: "searxng_url", ValidationOrder: 1, Default: "http://localhost:8081", FileOrder: 1, DiscoveryOrder: 2, EnvOrder: 1, Always: true}},
+		ID:       "searxng",
+		Name:     "SearXNG",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return NewSearXNG(c.String("searxng_url")), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return ProbeSearxng(ctx, client, c.String("searxng_url"))
+		},
+	}
 }

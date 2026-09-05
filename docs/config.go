@@ -23,10 +23,10 @@ var ErrUnknownBackend = errors.New("unknown docs backend")
 func NewFromConfig(cfg *config.Config, backend string) (Searcher, error) {
 	switch backend {
 	case "context7":
-		if cfg.Context7APIKey == "" {
+		if cfg.String("context7_api_key") == "" {
 			return nil, fmt.Errorf("context7: API key not set (get one then: ketch config set context7_api_key <key>)")
 		}
-		return NewContext7(cfg.Context7APIKey), nil
+		return NewContext7(cfg.String("context7_api_key")), nil
 	case "local":
 		// Recognized but planned-only: kept out of config.AvailableDocBackends
 		// so no surface advertises it, yet rejected as a precondition (not an

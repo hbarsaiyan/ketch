@@ -789,7 +789,7 @@ func TestProbeKeyPoolChecksEveryKeyAndRejectsPool(t *testing.T) {
 func TestBuildSpecsPluralKeyedBackendIsRequired(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.Backend = "ddg"
-	cfg.BraveAPIKeys = []string{"plural-only"}
+	cfg.SetProvider("brave_api_keys", []string{"plural-only"})
 	specs := buildSpecs(&cfg, http.DefaultClient)
 	if candidate := findSpec(t, specs, "search", "brave"); !candidate.required {
 		t.Error("brave with only a plural key must be required")
@@ -799,7 +799,11 @@ func TestBuildSpecsPluralKeyedBackendIsRequired(t *testing.T) {
 func TestBuildSpecsKeyedBackendIsRequired(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.Backend = "ddg"
-	cfg.BraveAPIKey = "k" // explicitly configured → a broken brave should gate
+	{
+		providerValue0 := "k"
+		cfg.SetProvider("brave_api_key", // explicitly configured → a broken brave should gate
+			providerValue0)
+	}
 	cfg.Browser = "chrome"
 	specs := buildSpecs(&cfg, http.DefaultClient)
 

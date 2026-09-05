@@ -293,7 +293,14 @@ func exaProbeErrDetail(err error) string {
 }
 
 func exaProvider() Provider {
-	return Provider{ID: "exa", Name: "Exa", Usable: func(*config.Config) bool { return true }, Configured: func(c *config.Config) bool { return len(c.ExaKeys()) > 0 }, New: func(c *config.Config) (Searcher, error) { return newEXAWithKeys(c.ExaKeys()), nil }, Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
-		return health.ProbeKeyPool(c.ExaKeys(), func(key string) (health.Status, string) { return ProbeExa(ctx, client, ExaEndpoint(key), key != "") })
-	}}
+	return Provider{
+		Settings: []config.Setting{config.KeyPool("exa_api_key", "exa_api_keys", 4, 5, 3, 4)},
+		ID:       "exa",
+		Name:     "Exa",
+		Usable:   func(*config.Config) bool { return true },
+		New:      func(c *config.Config) (Searcher, error) { return newEXAWithKeys(c.ExaKeys()), nil },
+		Probe: func(ctx context.Context, client *http.Client, c *config.Config) (health.Status, string) {
+			return health.ProbeKeyPool(c.ExaKeys(), func(key string) (health.Status, string) { return ProbeExa(ctx, client, ExaEndpoint(key), key != "") })
+		},
+	}
 }
