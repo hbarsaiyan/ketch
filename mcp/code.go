@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/1broseidon/ketch/code"
+	"github.com/1broseidon/ketch/internal/configbase"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -28,6 +29,10 @@ type CodeOutput struct {
 func (s *Server) registerCodeTool() {
 	mcpsdk.AddTool(s.mcp, &mcpsdk.Tool{
 		Name: "code",
+		InputSchema: inputSchema[CodeInput](map[string]string{
+			"backend": "code search backend: " + configbase.JoinNames(code.AvailableBackends()) + " (default: the configured backend)",
+			"regexp":  "interpret query as a regular expression (" + strings.Join(code.RegexpBackends(), ", ") + " only)",
+		}),
 		Description: "Search code across open-source repositories using " + code.DescriptionNames(false) + " (default: the configured backend)." +
 			errTaxonomy,
 		Annotations: readOnlyOpenWorld(),

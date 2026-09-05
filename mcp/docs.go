@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/1broseidon/ketch/docs"
+	"github.com/1broseidon/ketch/internal/configbase"
+	"github.com/google/jsonschema-go/jsonschema"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -30,7 +32,8 @@ type DocsOutput struct {
 
 func (s *Server) registerDocsTool() {
 	mcpsdk.AddTool(s.mcp, &mcpsdk.Tool{
-		Name: "docs",
+		Name:        "docs",
+		InputSchema: docsInputSchema(),
 		Description: "Search library documentation using " + strings.Join(docs.ProviderNames(), ", ") + ". Supports resolving a library name to a " + strings.Join(docs.LibraryProviderNames(), ", ") + " library ID, and fetching docs directly from a known library ID." +
 			errTaxonomy,
 		Annotations: readOnlyOpenWorld(),
@@ -118,4 +121,23 @@ func (s *Server) libraryResolver(backend string) (docs.LibraryResolver, error) {
 		return nil, errf(kindValidation, "docs backend %q does not support library operations", backend)
 	}
 	return resolver, nil
+}
+
+// docsInputSchema names the registered docs providers in the argument
+// descriptions: which backends exist, and which of them own library
+// resolution and direct library lookup.
+func docsInputSchema() *jsonschema.Schema {
+	backends := docs.AvailableBackends()
+	implemented := "implemented backends: " + configbase.JoinNames(backends)
+	if len(backends) == 1 {
+		implemented = backends[0] + " is the only implemented backend"
+	}
+	libNames := strings.Join(docs.LibraryProviderNames(), ", ")
+	libIDs := configbase.JoinNames(docs.LibraryBackends())
+	return inputSchema[DocsInput](map[string]string{
+		"backend": "docs backend (default: the configured backend); " + implemented,
+		"library": libNames + " library ID to fetch docs from directly, skipping the resolve step; requires the " + libIDs + " backend",
+		"tokens":  libNames + " token budget when library is set (default 4000)",
+		"resolve": "resolve a library name to " + libNames + " library IDs instead of searching docs",
+	})
 }

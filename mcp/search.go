@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/1broseidon/ketch/extract"
+	"github.com/1broseidon/ketch/internal/configbase"
 	"github.com/1broseidon/ketch/search"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -39,6 +40,9 @@ type SearchOutput struct {
 func (s *Server) registerSearchTool() {
 	mcpsdk.AddTool(s.mcp, &mcpsdk.Tool{
 		Name: "search",
+		InputSchema: inputSchema[SearchInput](map[string]string{
+			"backend": "search backend: " + configbase.JoinNames(search.AvailableBackends()) + " (default: the configured backend)",
+		}),
 		Description: "Search the web using " + search.DescriptionNames() + " (default: the configured backend) and return results (title, url, description). " +
 			"Set scrape=true to also fetch each result and include its content as markdown. " +
 			"Set multi to query several backends at once and rank-fuse the results, or random to shuffle providers and fall back sequentially on errors." + errTaxonomy,
