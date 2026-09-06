@@ -103,7 +103,10 @@ func (s Setting) ApplyEnv(c *Config, value string) error {
 	return nil
 }
 
-// Field is an ordered JSON field. Order is presentation metadata, not lookup policy.
+// Field is an ordered JSON field. Order is presentation metadata, not lookup
+// policy. A setting's companion fields (key/plural, _set/_count) share one
+// order and rely on the stable sort to stay adjacent, so two providers added
+// with the same default order group per provider instead of interleaving.
 type Field struct {
 	Name  string
 	Value any
@@ -114,11 +117,11 @@ type Field struct {
 func (s Setting) Discovery(c *Config) []Field {
 	if s.Token {
 		_, source := s.Resolve(c)
-		return []Field{{s.Key + "_source", source, s.DiscoveryOrder}, {s.Key + "_set", source != "none", s.DiscoveryOrder + 1}}
+		return []Field{{s.Key + "_source", source, s.DiscoveryOrder}, {s.Key + "_set", source != "none", s.DiscoveryOrder}}
 	}
 	if s.Plural != "" {
 		n := len(s.Keys(c))
-		return []Field{{s.Key + "_set", n > 0, s.DiscoveryOrder}, {s.Plural + "_count", n, s.DiscoveryOrder + 1}}
+		return []Field{{s.Key + "_set", n > 0, s.DiscoveryOrder}, {s.Plural + "_count", n, s.DiscoveryOrder}}
 	}
 	if s.Secret {
 		return []Field{{s.Key + "_set", c.String(s.Key) != "", s.DiscoveryOrder}}
@@ -229,7 +232,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 			fields = append(fields, Field{s.Key, value, s.FileOrder})
 		}
 		if list := c.Strings(s.Plural); s.Plural != "" && len(list) > 0 {
-			fields = append(fields, Field{s.Plural, list, s.FileOrder + 1})
+			fields = append(fields, Field{s.Plural, list, s.FileOrder})
 		}
 	}
 	if len(c.providerSchema) == 0 {

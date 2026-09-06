@@ -397,7 +397,7 @@ func validConfigKeys() []string {
 	for _, s := range config.ProviderSettings() {
 		fields = append(fields, configbase.Field{Name: s.Key, Order: s.ValidationOrder})
 		if s.Plural != "" {
-			fields = append(fields, configbase.Field{Name: s.Plural, Order: s.ValidationOrder + 1})
+			fields = append(fields, configbase.Field{Name: s.Plural, Order: s.ValidationOrder})
 		}
 	}
 	sort.SliceStable(fields, func(i, j int) bool { return fields[i].Order < fields[j].Order })
