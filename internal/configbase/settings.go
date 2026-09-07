@@ -275,8 +275,29 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// lookupRaw finds key in raw the way encoding/json matches struct tags: an
+// exact match wins, otherwise a case-insensitive one. Hand-edited config
+// files with "BRAVE_API_KEY" or "Searxng_URL" loaded before the registry and
+// must keep loading. Ties between case variants resolve in sorted key order
+// so the outcome is deterministic.
+func lookupRaw(raw map[string]json.RawMessage, key string) (json.RawMessage, bool) {
+	if v, ok := raw[key]; ok {
+		return v, true
+	}
+	var match string
+	for k := range raw {
+		if strings.EqualFold(k, key) && (match == "" || k < match) {
+			match = k
+		}
+	}
+	if match == "" {
+		return nil, false
+	}
+	return raw[match], true
+}
+
 func (c *Config) decodeSetting(raw map[string]json.RawMessage, key string, list bool) error {
-	value, ok := raw[key]
+	value, ok := lookupRaw(raw, key)
 	if !ok {
 		return nil
 	}

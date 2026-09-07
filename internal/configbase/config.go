@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/1broseidon/ketch/urlrewrite"
@@ -99,17 +100,66 @@ func (c Config) ResolveGithubToken() (token, source string) {
 	if t := os.Getenv("GH_TOKEN"); t != "" {
 		return t, "env"
 	}
-	if _, err := exec.LookPath("gh"); err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		out, err := exec.CommandContext(ctx, "gh", "auth", "token").Output()
-		if err == nil {
-			if t := strings.TrimSpace(string(out)); t != "" {
-				return t, "gh-cli"
-			}
-		}
+	if t := ghCLIToken(); t != "" {
+		return t, "gh-cli"
 	}
 	return "", "none"
+}
+
+// ghCLITokenTTL bounds how long one `gh auth token` answer is reused. A single
+// CLI invocation resolves the token more than once (eligibility, construction,
+// discovery, doctor) and must see one consistent answer without paying for a
+// subprocess each time; a long-lived MCP server still notices a re-login
+// within this window.
+const ghCLITokenTTL = 30 * time.Second
+
+var ghCLI struct {
+	sync.Mutex
+	token   string
+	checked time.Time
+	run     func() (string, error) // swapped by tests
+}
+
+func runGHAuthToken() (string, error) {
+	if _, err := exec.LookPath("gh"); err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "gh", "auth", "token").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// ghCLIToken returns the gh CLI's token, memoised for ghCLITokenTTL. Failures
+// are cached too, so a missing or logged-out gh costs one subprocess per
+// window rather than one per call.
+func ghCLIToken() string {
+	ghCLI.Lock()
+	defer ghCLI.Unlock()
+	if !ghCLI.checked.IsZero() && time.Since(ghCLI.checked) < ghCLITokenTTL {
+		return ghCLI.token
+	}
+	run := ghCLI.run
+	if run == nil {
+		run = runGHAuthToken
+	}
+	token, err := run()
+	if err != nil {
+		token = ""
+	}
+	ghCLI.token, ghCLI.checked = token, time.Now()
+	return token
+}
+
+// ResetGHCLICache forgets the memoised gh token. Exported for tests that swap
+// PATH or fake the gh binary between cases.
+func ResetGHCLICache() {
+	ghCLI.Lock()
+	defer ghCLI.Unlock()
+	ghCLI.token, ghCLI.checked = "", time.Time{}
 }
 
 // DefaultFirecrawlURL is the hosted Firecrawl API base. Self-hosted

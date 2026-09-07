@@ -22,13 +22,14 @@ func (libraryFixture) GetDocs(context.Context, string, string, int) ([]Result, e
 
 func TestRegistryDiscoversOptionalLibraryInterface(t *testing.T) {
 	previous := providers
+	before := LibraryBackends()
 	providers = append(Providers(), Provider{
 		ID: "libraryfixture", Name: "Library Fixture",
 		Usable: func(*config.Config) bool { return true },
 		New:    func(*config.Config) (Searcher, error) { return libraryFixture{}, nil },
 	})
 	t.Cleanup(func() { providers = previous })
-	if !slices.Equal(LibraryBackends(), []string{"context7", "libraryfixture"}) {
+	if !slices.Equal(LibraryBackends(), append(before, "libraryfixture")) {
 		t.Fatalf("library capability discovery = %v", LibraryBackends())
 	}
 	if ResolveBackend("libraryfixture") != "libraryfixture" || ResolveBackend("local") != "context7" {

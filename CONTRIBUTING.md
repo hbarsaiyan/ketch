@@ -28,7 +28,8 @@ the hook and `make lint`.
 pattern. PRs that wire a provider any other way will not be merged, and will
 be sent back for a rewrite before review.**
 
-A provider is one Go file plus one line:
+A provider is one Go file, its tests, one registry line, and a regenerated
+golden fixture. No production consumer changes, ever:
 
 1. `search/<name>.go` (or `code/`, `docs/`) containing the implementation, its
    descriptor function, and its health probe.
@@ -37,6 +38,9 @@ A provider is one Go file plus one line:
 3. `search/<name>_test.go` covering request building, result mapping,
    authentication, cancellation, and the error and retry paths that matter
    for that API.
+4. `UPDATE_REGISTRY_GOLDENS=1 go test ./cmd/ ./doctor/` to add the provider's
+   own discovery keys and doctor row to the golden fixtures. That is the only
+   shared file a provider PR touches, and the diff must be purely additive.
 
 Everything else follows from the descriptor: config keys, `KETCH_*` env
 overrides, redacted `ketch config` discovery, `ketch doctor`, CLI backend
@@ -56,8 +60,9 @@ A backend PR will be rejected if it does any of the following:
   explicit and ordered on purpose.
 - Adds a dependency for a plain HTTP + JSON API. `net/http` and
   `encoding/json` are the standard here.
-- Changes the config or doctor golden fixtures. Those must stay unchanged for a
-  new provider; if they move, the wiring is wrong.
+- Rewrites existing lines in the config or doctor golden fixtures. A new
+  provider only adds its own keys and doctor row; if any other line moves, the
+  wiring is wrong.
 - Probes or validates credentials inside the factory. `New` only constructs a
   client and must accept empty credentials; `Usable` decides eligibility
   without network I/O; `Probe` is the only place that talks to the service.

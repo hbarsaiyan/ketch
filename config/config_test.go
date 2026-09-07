@@ -4,18 +4,24 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/1broseidon/ketch/internal/testutil"
+	"github.com/1broseidon/ketch/search"
 )
 
 func TestParallelBackendIsAppendedWithoutChangingDefault(t *testing.T) {
 	if got := Defaults().Backend; got != "brave" {
 		t.Fatalf("default backend = %q, want brave", got)
 	}
-	want := []string{"brave", "ddg", "searxng", "exa", "firecrawl", "keenable", "tavily", "parallel", "serpbase"}
-	if got := AvailableBackends(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("available backends = %v, want %v", got, want)
+	// The list is the registry's, in registry order; this facade must not keep
+	// its own copy. Parallel is appended somewhere after the default.
+	if got := AvailableBackends(); !reflect.DeepEqual(got, search.AvailableBackends()) {
+		t.Fatalf("available backends = %v, want registry order %v", got, search.AvailableBackends())
+	}
+	if got := AvailableBackends(); got[0] != "brave" || !slices.Contains(got, "parallel") {
+		t.Fatalf("available backends = %v, want brave first and parallel present", got)
 	}
 }
 
