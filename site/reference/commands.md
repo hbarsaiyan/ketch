@@ -12,7 +12,7 @@ ketch search <query> [flags]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--backend, -b` | `brave` | Search backend: `brave`, `ddg`, `searxng`, `exa`, `firecrawl`, `keenable`, `tavily`, `parallel`, `serpbase` |
+| `--backend, -b` | `brave` | Search backend: `brave`, `ddg`, `searxng`, `exa`, `firecrawl`, `keenable`, `tavily`, `parallel`, `serpbase`, `degoog` |
 | `--multi` | — | Federated search across backends: comma-separated list, or bare/`=all` for every usable backend. Mutually exclusive with `--backend` and `--random`. |
 | `--random` | — | Random provider with fallback: comma-separated list, or bare/`=all` for every usable backend. Mutually exclusive with `--backend` and `--multi`. |
 | `--limit, -l` | `5` | Max number of results |
@@ -37,7 +37,8 @@ naming the engines that returned it.
 - Bare `ketch search --multi "query"` (or `--multi=all`) uses every *usable*
   backend — the same key-presence rule ketch uses everywhere: `ddg`, `exa`,
   `keenable`, and `parallel` always; `brave`, `firecrawl`, `tavily`, and `serpbase` only with a key; `searxng`
-  always (a dead instance just fails fast and is skipped).
+  always (a dead instance just fails fast and is skipped); `degoog` only when
+  `degoog_url` is set.
 - `ketch search --multi=brave,exa "query"` queries exactly those, in that order.
   An unknown name is a validation error (exit 2); a named-but-unconfigured
   backend is a precondition error (exit 5).
@@ -327,7 +328,7 @@ ketch cache clear         # remove all cached pages
 ## ketch doctor
 
 Run live health checks against every surface: search backends
-(brave/ddg/searxng/exa/firecrawl/keenable/tavily/parallel/serpbase), code backends (grepapp/sourcegraph/github), docs
+(brave/ddg/searxng/exa/firecrawl/keenable/tavily/parallel/serpbase/degoog), code backends (grepapp/sourcegraph/github), docs
 (context7), the configured browser binary, and the page cache. Probes run
 concurrently with a per-check timeout and are read-only (nothing is written
 to the cache).

@@ -137,6 +137,24 @@ Google search results through the [SerpBase](https://serpbase.dev) REST API. Ket
 
 **Recommended for:** agent workflows that need keyed Google search results through a structured API.
 
+## Degoog
+
+Self-hosted [Degoog](https://github.com/degoog-org/degoog) meta-search aggregator, a second self-hosted option alongside SearXNG. Ketch calls its `/api/search` JSON endpoint and maps titles, URLs, and snippets into its standard result fields. Opt-in: there is no default instance, so the backend is not usable, not a required `ketch doctor` check, and absent from `--multi=all` until `degoog_url` is set.
+
+**Setup:**
+
+1. Run a Degoog instance (see the project README; the default port is 4444).
+2. Point ketch to it:
+
+```sh
+ketch config set degoog_url http://localhost:4444
+ketch config set backend degoog
+```
+
+`ketch doctor` reports an instance that requires an API key for `/api/search` as misconfigured.
+
+**Recommended for:** operators who already run Degoog, or who want a self-hosted aggregator with a different engine mix than SearXNG.
+
 ## Code Search Backends
 
 `ketch code` searches real source code across open-source repositories. Set the default with `ketch config set code_backend <name>`.
