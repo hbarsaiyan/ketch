@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-07
+
 ### Added
 - `readthedocs` docs backend: section-level search over documentation hosted on Read the Docs through its server-side search API, with deep links to section anchors and Sphinx objects. Zero config against the public instance; every query names a project (`--library <slug>` or `<slug>/<version>`, or `project:<slug>` in the query) because Read the Docs answers unscoped queries with nothing. `--resolve` confirms an exact project slug. Optional `readthedocs_url` (Business or self-hosted instance) and `readthedocs_api_token` (private projects, higher rate limit). `ketch doctor` probes it.
 - Bare `ketch docs` queries now report how the library was chosen. The text frontmatter gains `library:` (already present when results exist) and a `candidates:` line listing the resolver's runners-up; the MCP `docs` tool adds a `resolution` object with the same data. `--json` output is unchanged.
