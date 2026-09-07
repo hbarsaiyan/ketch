@@ -87,12 +87,12 @@ func (d *Degoog) Search(ctx context.Context, query string, limit int) ([]Result,
 }
 
 // ProbeDegoog checks a degoog instance with the same /api/search JSON call
-// ketch uses. An unset URL is skipped rather than failed: the backend is
-// opt-in and has no default instance.
+// ketch uses. An unset URL is misconfigured, as for SearXNG: when the backend
+// is selected that blocks doctor, otherwise it is an advisory problem.
 func ProbeDegoog(ctx context.Context, client *http.Client, baseURL string) (health.Status, string) {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {
-		return health.StatusSkipped, "not configured (ketch config set degoog_url <url>; optional)"
+		return health.StatusMisconfigured, "degoog_url not set (ketch config set degoog_url <url>)"
 	}
 	resp, err := health.Get(ctx, client, baseURL+"/api/search?q=ketch", map[string]string{"Accept": "application/json"})
 	if err != nil {

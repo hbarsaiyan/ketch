@@ -60,8 +60,8 @@
   {
     "surface": "search",
     "backend": "degoog",
-    "status": "skipped",
-    "detail": "not configured (ketch config set degoog_url \u003curl\u003e; optional)",
+    "status": "misconfigured",
+    "detail": "degoog_url not set (ketch config set degoog_url \u003curl\u003e)",
     "latency_ms": 0
   },
   {

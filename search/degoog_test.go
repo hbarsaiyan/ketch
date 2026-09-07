@@ -78,8 +78,10 @@ func TestDegoogSearchErrors(t *testing.T) {
 
 func TestProbeDegoog(t *testing.T) {
 	ctx := context.Background()
-	if status, detail := ProbeDegoog(ctx, http.DefaultClient, ""); status != health.StatusSkipped || !strings.Contains(detail, "degoog_url") {
-		t.Errorf("unset URL: %s %q, want skipped with the config hint", status, detail)
+	// Same contract as SearXNG: a selected backend with no URL must fail
+	// doctor rather than pass with a skipped row.
+	if status, detail := ProbeDegoog(ctx, http.DefaultClient, ""); status != health.StatusMisconfigured || !strings.Contains(detail, "degoog_url not set") {
+		t.Errorf("unset URL: %s %q, want misconfigured with the config hint", status, detail)
 	}
 	cases := []struct {
 		name   string
