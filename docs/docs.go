@@ -12,6 +12,12 @@ import (
 // a retryable upstream failure.
 var ErrNotFound = errors.New("not found")
 
+// ErrScopeRequired reports a query the provider cannot run without a library
+// scope (Read the Docs answers an unscoped query with nothing). Both surfaces
+// classify it as a validation failure: the caller must add --library or the
+// provider's own scope syntax, and retrying unchanged will not help.
+var ErrScopeRequired = errors.New("a library scope is required")
+
 // Result is a single docs search result.
 type Result struct {
 	Library    string `json:"library"`

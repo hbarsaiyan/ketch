@@ -124,19 +124,20 @@ ketch docs <query> [flags]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--backend, -b` | `context7` | Docs backend: `context7`, `local` (not yet implemented) |
+| `--backend, -b` | `context7` | Docs backend: `context7`, `readthedocs`, `local` (not yet implemented) |
 | `--limit, -l` | `5` | Max number of results |
-| `--library` | — | Context7 library ID (skip resolve step) |
+| `--library` | — | Context7 library ID or Read the Docs project slug[/version] (skip resolve step) |
 | `--resolve` | `false` | Resolve library name instead of searching |
-| `--tokens` | `4000` | Context7 token budget |
+| `--tokens` | `4000` | Library token budget (Context7 tokens; Read the Docs caps section text at ~4 chars/token) |
 | `--minimal` | `false` | One result per line, tab-separated |
 
 **Examples:**
 
 ```sh
 ketch docs "how to render with word wrap" --library /charmbracelet/glamour
-ketch docs "middleware authentication"
+ketch docs "middleware authentication"          # bare query: frontmatter reports library: and candidates:
 ketch docs --resolve "glamour"
+ketch docs "blueprints" -b readthedocs --library flask
 ```
 
 ## ketch scrape
@@ -329,7 +330,7 @@ ketch cache clear         # remove all cached pages
 
 Run live health checks against every surface: search backends
 (brave/ddg/searxng/exa/firecrawl/keenable/tavily/parallel/serpbase/degoog), code backends (grepapp/sourcegraph/github), docs
-(context7), the configured browser binary, and the page cache. Probes run
+(context7/readthedocs), the configured browser binary, and the page cache. Probes run
 concurrently with a per-check timeout and are read-only (nothing is written
 to the cache).
 

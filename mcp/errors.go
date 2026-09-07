@@ -51,6 +51,8 @@ func upstreamErrf(err error, format string, args ...any) error {
 		kind = kindCancelled
 	case errors.Is(err, docs.ErrNotFound):
 		kind = kindNotFound
+	case errors.Is(err, docs.ErrScopeRequired):
+		kind = kindValidation // add library or the provider's scope syntax
 	}
 	return errf(kind, format+": %w", append(args, err)...)
 }

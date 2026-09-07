@@ -50,14 +50,18 @@ func backendErr(err, unknown error) error {
 }
 
 // upstreamErr classifies a failure from a live backend call: errors wrapping
-// docs.ErrNotFound are permanently absent resources (exit 3, not retryable);
-// everything else is an upstream failure (exit 4). The sentinel is detected
-// in the docs package itself, so the CLI and the MCP server (which applies
-// the same rule in its upstreamErrf) cannot diverge.
+// docs.ErrNotFound are permanently absent resources (exit 3, not retryable),
+// errors wrapping docs.ErrScopeRequired are bad input (exit 2, add a library
+// scope); everything else is an upstream failure (exit 4). The sentinels are
+// detected in the docs package itself, so the CLI and the MCP server (which
+// applies the same rules in its upstreamErrf) cannot diverge.
 func upstreamErr(err error, format string, args ...any) error {
 	code := ExitUpstream
-	if errors.Is(err, docs.ErrNotFound) {
+	switch {
+	case errors.Is(err, docs.ErrNotFound):
 		code = ExitNotFound
+	case errors.Is(err, docs.ErrScopeRequired):
+		code = ExitValidation
 	}
 	return &ExitError{Code: code, Err: fmt.Errorf(format+": %w", append(args, err)...)}
 }

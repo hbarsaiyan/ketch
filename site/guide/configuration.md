@@ -41,7 +41,7 @@ The discovery payload:
   "external_pdf_to_md_converter_timeout_sec": 300,
   "available_backends": ["brave", "ddg", "searxng", "exa", "firecrawl", "keenable", "tavily", "parallel", "serpbase", "degoog"],
   "available_code_backends": ["grepapp", "sourcegraph", "github"],
-  "available_doc_backends": ["context7"]
+  "available_doc_backends": ["context7", "readthedocs"]
 }
 ```
 
@@ -126,9 +126,11 @@ and `ketch doctor` probes the effective pool.
 | Key | Default | Description |
 |-----|---------|-------------|
 | `code_backend` | `grepapp` | Default `ketch code` backend: `grepapp`, `sourcegraph`, `github` |
-| `docs_backend` | `context7` | Default `ketch docs` backend: `context7`, `local` |
+| `docs_backend` | `context7` | Default `ketch docs` backend: `context7`, `readthedocs`, `local` |
 | `sourcegraph_url` | `https://sourcegraph.com` | Sourcegraph instance URL (for self-hosted) |
-| `context7_api_key` | — | Context7 API key (required for `ketch docs`) |
+| `context7_api_key` | — | Context7 API key (required for `-b context7`) |
+| `readthedocs_url` | `https://app.readthedocs.org` | Read the Docs instance (Business: `https://app.readthedocs.com`) |
+| `readthedocs_api_token` | — | Optional Read the Docs API token: private projects and a higher rate limit |
 | `github_token` | — | GitHub token for `ketch code -b github` (or use `$GITHUB_TOKEN` / `gh auth`) |
 
 ### Scraping & Cache
@@ -147,7 +149,7 @@ When no external converter is configured, ketch uses its built-in pure-Go PDF te
 
 PDFs do not support `--raw` or `--select`; these return validation errors (exit 2 / `[validation]`). With `--force-browser`, normal markdown output still uses PDF text extraction and never opens Chromium's PDF viewer.
 
-Secrets (the per-provider `*_api_key`/`*_api_keys` values, `context7_api_key`, `github_token`) are stored in
+Secrets (the per-provider `*_api_key`/`*_api_keys` values, `context7_api_key`, `readthedocs_api_token`, `github_token`) are stored in
 plaintext in `config.json`; ketch writes the file with mode `0600`, protect it accordingly.
 
 ## Environment Variables

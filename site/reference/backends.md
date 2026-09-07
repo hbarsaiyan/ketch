@@ -188,13 +188,34 @@ GitHub Code Search (REST `/search/code`) with a batched GraphQL call for star co
 
 ## Docs Backends
 
-`ketch docs` fetches library documentation. Set the default with `ketch config set docs_backend <name>`.
+`ketch docs` fetches library documentation. Set the default with `ketch config set docs_backend <name>`. Both backends accept `--library` to skip resolution: a Context7 library ID (`/org/repo`) or a Read the Docs project slug (`flask`, `requests/stable`).
 
 ### Context7 (default)
 
 Curated, version-aware documentation snippets.
 
 **Setup:** Free key: `ketch config set context7_api_key <key>`.
+
+A bare query (no `--library`) resolves the top-ranked library and fetches from
+it. The frontmatter reports the `library:` used and a `candidates:` line with
+the runners-up; if the pick is wrong, retry with `--library <id>`.
+
+### Read the Docs
+
+Section-level search over documentation hosted on [Read the Docs](https://about.readthedocs.com/) through its server-side search API. Results are page sections (and Sphinx objects such as classes and functions) with the section text as the snippet and a deep link to the anchor.
+
+**Setup:** None for the public instance. Every query must name a project, because Read the Docs answers an unscoped query with nothing:
+
+```sh
+ketch docs "blueprints" -b readthedocs --library flask          # project slug
+ketch docs "retries" -b readthedocs --library requests/stable   # pinned version
+ketch docs "project:pip requirements file" -b readthedocs       # Read the Docs query syntax
+ketch docs --resolve flask -b readthedocs                       # confirm a slug exists
+```
+
+`--resolve` looks up an exact slug (Read the Docs has no public project search). Optional settings: `readthedocs_url` for a Business or self-hosted instance (default `https://app.readthedocs.org`) and `readthedocs_api_token`, which unlocks private projects and lifts the anonymous rate limit.
+
+**Recommended for:** Python and Sphinx-based projects whose canonical docs live on Read the Docs, and as a second opinion beside Context7.
 
 ### Local
 

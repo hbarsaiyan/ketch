@@ -11,9 +11,10 @@ import (
 )
 
 // allFiveInstructions is the static instructions text mcp/server.go shipped
-// before tool pruning (v0.14.0). With every tool published, the generated
-// text must reproduce it byte-for-byte.
-const allFiveInstructions = `ketch provides five read-only research tools: search (web search), code (grep public OSS repos for real-world usage), docs (curated library/API documentation via Context7), scrape (fetch URLs as clean markdown), and crawl (bounded same-host multi-page crawl).
+// before tool pruning (v0.14.0), with the docs provider list following the
+// registry since Read the Docs joined Context7. With every tool published,
+// the generated text must reproduce it byte-for-byte.
+const allFiveInstructions = `ketch provides five read-only research tools: search (web search), code (grep public OSS repos for real-world usage), docs (library/API documentation via Context7, Read the Docs), scrape (fetch URLs as clean markdown), and crawl (bounded same-host multi-page crawl).
 Prefer search for the open web, code for code examples, docs for library references, scrape when you already have the URL, and crawl only when one page is not enough.
 Backend defaults and API keys come from the operator's ketch config; omit the backend argument to use them (on the CLI, ` + "`ketch config`" + ` shows the effective settings).
 Tool errors start with a stable prefix: [validation] and [not_found] mean fix your input (retrying unchanged will not help); [upstream] is a backend/network failure where retrying may help; [precondition] means the operator must configure something (e.g. an API key or browser); [cancelled] means the call was cancelled or timed out.

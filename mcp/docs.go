@@ -14,9 +14,9 @@ import (
 type DocsInput struct {
 	Query   string `json:"query" jsonschema:"the docs search query, or a library name when resolve is true"`
 	Backend string `json:"backend,omitempty" jsonschema:"docs backend (default: the configured backend)"`
-	Library string `json:"library,omitempty" jsonschema:"library ID to fetch docs from directly, skipping the resolve step; requires a backend with library operations"`
+	Library string `json:"library,omitempty" jsonschema:"library ID (Context7) or project slug, optionally slug/version (Read the Docs), to fetch docs from directly, skipping the resolve step; requires a backend with library operations"`
 	Tokens  int    `json:"tokens,omitempty" jsonschema:"library token budget when library is set (default 4000)"`
-	Limit   int    `json:"limit,omitempty" jsonschema:"max number of results (default: the configured limit)"`
+	Limit   int    `json:"limit,omitempty" jsonschema:"max number of results (default: the configured limit; with library set, only an explicit limit bounds the token-budgeted results)"`
 	Resolve bool   `json:"resolve,omitempty" jsonschema:"resolve a library name to library IDs instead of searching docs"`
 }
 
@@ -24,10 +24,13 @@ type DocsInput struct {
 // for a normal or library-scoped search; Matches is populated when Resolve
 // is set. Exactly one of the two is non-empty for a given call. The result
 // objects match the CLI's `ketch docs --json` (which emits a bare array; MCP
-// structured content needs the object wrapper).
+// structured content needs the object wrapper). Resolution accompanies a
+// bare-query search on a provider that chose a library for it: the ID used
+// and the ranked runners-up, so a wrong choice is corrected with library.
 type DocsOutput struct {
-	Results []docs.Result       `json:"results,omitempty"`
-	Matches []docs.LibraryMatch `json:"matches,omitempty"`
+	Results    []docs.Result       `json:"results,omitempty"`
+	Matches    []docs.LibraryMatch `json:"matches,omitempty"`
+	Resolution *docs.Resolution    `json:"resolution,omitempty"`
 }
 
 func (s *Server) registerDocsTool() {
@@ -49,6 +52,9 @@ func (s *Server) registerDocsTool() {
 		if limit <= 0 {
 			limit = s.cfg.Limit
 		}
+		// With library set, the token budget is the only bound unless the
+		// caller asked for a limit explicitly, matching the CLI.
+		libraryLimit := max(in.Limit, 0)
 		tokens := in.Tokens
 		if tokens <= 0 {
 			tokens = 4000
@@ -63,7 +69,7 @@ func (s *Server) registerDocsTool() {
 			if !docs.SupportsLibraries(backend) {
 				return nil, DocsOutput{}, errf(kindValidation, "library requires the %s backend (got %q)", strings.Join(docs.LibraryBackends(), ", "), backend)
 			}
-			return s.docsForLibrary(ctx, backend, in.Query, in.Library, tokens)
+			return s.docsForLibrary(ctx, backend, in.Query, in.Library, tokens, libraryLimit)
 		}
 
 		searcher, err := docs.NewFromConfig(s.cfg, backend)
@@ -71,12 +77,12 @@ func (s *Server) registerDocsTool() {
 			return nil, DocsOutput{}, backendErrf(err, docs.ErrUnknownBackend)
 		}
 
-		results, err := searcher.Search(ctx, in.Query, limit)
+		results, resolution, err := docs.Query(ctx, searcher, in.Query, limit)
 		if err != nil {
 			return nil, DocsOutput{}, upstreamErrf(err, "docs search failed")
 		}
 
-		return nil, DocsOutput{Results: results}, nil
+		return nil, DocsOutput{Results: results, Resolution: resolution}, nil
 	})
 }
 
@@ -94,8 +100,9 @@ func (s *Server) docsResolve(ctx context.Context, backend, query string, limit i
 	return nil, DocsOutput{Matches: matches}, nil
 }
 
-// docsForLibrary fetches docs for a known Context7 library ID.
-func (s *Server) docsForLibrary(ctx context.Context, backend, query, library string, tokens int) (*mcpsdk.CallToolResult, DocsOutput, error) {
+// docsForLibrary fetches docs for a known library ID (a Context7 ID or a
+// Read the Docs project slug), bounded by limit when it is positive.
+func (s *Server) docsForLibrary(ctx context.Context, backend, query, library string, tokens, limit int) (*mcpsdk.CallToolResult, DocsOutput, error) {
 	resolver, err := s.libraryResolver(backend)
 	if err != nil {
 		return nil, DocsOutput{}, err
@@ -103,6 +110,9 @@ func (s *Server) docsForLibrary(ctx context.Context, backend, query, library str
 	results, err := resolver.GetDocs(ctx, library, query, tokens)
 	if err != nil {
 		return nil, DocsOutput{}, upstreamErrf(err, "docs fetch failed")
+	}
+	if limit > 0 && len(results) > limit {
+		results = results[:limit]
 	}
 	return nil, DocsOutput{Results: results}, nil
 }
@@ -136,7 +146,7 @@ func docsInputSchema() *jsonschema.Schema {
 	libIDs := configbase.JoinNames(docs.LibraryBackends())
 	return inputSchema[DocsInput](map[string]string{
 		"backend": "docs backend (default: the configured backend); " + implemented,
-		"library": libNames + " library ID to fetch docs from directly, skipping the resolve step; requires the " + libIDs + " backend",
+		"library": libNames + " library ID (a Context7 ID such as /org/repo, or a Read the Docs project slug, optionally slug/version) to fetch docs from directly, skipping the resolve step; requires the " + libIDs + " backend",
 		"tokens":  libNames + " token budget when library is set (default 4000)",
 		"resolve": "resolve a library name to " + libNames + " library IDs instead of searching docs",
 	})

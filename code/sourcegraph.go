@@ -14,6 +14,10 @@ import (
 	config "github.com/1broseidon/ketch/internal/configbase"
 )
 
+// sourcegraphMaxEventBytes bounds one SSE event; a matches batch for even the
+// most common identifiers is a few megabytes at most.
+const sourcegraphMaxEventBytes = 16 << 20
+
 // Sourcegraph searches code via the Sourcegraph streaming search API.
 type Sourcegraph struct {
 	baseURL string
@@ -96,6 +100,10 @@ func (s *Sourcegraph) parseSSE(resp *http.Response, limit int) ([]Result, error)
 	var eventType string
 
 	scanner := bufio.NewScanner(resp.Body)
+	// One "matches" event carries every match of a batch on a single data:
+	// line. Popular symbols push that far past the 64KB default token size,
+	// which used to fail the whole query with "token too long".
+	scanner.Buffer(make([]byte, 0, 64*1024), sourcegraphMaxEventBytes)
 	for scanner.Scan() {
 		line := scanner.Text()
 
