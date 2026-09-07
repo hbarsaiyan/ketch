@@ -22,6 +22,39 @@ make test                             # go test ./...
 Go 1.25 or newer, `CGO_ENABLED=0`, pure Go. `golangci-lint` must be on PATH for
 the hook and `make lint`.
 
+## Which backends get in
+
+The registry makes adding a backend cheap. That is not the same as every
+backend belonging in ketch. Open an issue before writing a provider PR, and
+expect these questions in this order:
+
+1. **Is search the product?** The baseline test. A search provider exists to
+   answer a query with ranked results over the web, over code, or over
+   documentation. A service whose product is something else and which also
+   happens to expose a search endpoint is not a search provider, however good
+   the endpoint is. If that endpoint is the reason you want it in ketch, it
+   fails here and the rest does not apply.
+2. **Do people already use it?** A self-hosted project with a real community
+   behind it, or a hosted service with users who are not its own team. Ketch
+   ships to agents that cannot evaluate a backend for themselves, so a listed
+   backend is an endorsement. One-person services and launch-week APIs are
+   asked to come back later.
+3. **Are the results as good as what is already here?** Before merging, the
+   maintainer runs the same fixed set of queries through the new backend and
+   through Brave and SearXNG and compares the result lists. A backend that is
+   clearly worse, that returns thin or padded snippets, or that cannot be
+   exercised without a paid plan is not merged.
+4. **Is the API stable, documented, and public?** A versioned JSON API with
+   published terms. No scraping of HTML result pages (the DuckDuckGo backend
+   predates this rule and is kept for zero-config use), no undocumented
+   endpoints, no keys that only the vendor can issue.
+
+An admitted provider is a supported backend: it gets its row in the README and
+site backend tables and a changelog line in the same PR. There is no
+half-in tier. If a backend does not clear the bar, the registry still makes it
+a one-file change to carry in a fork, and the answer can change as a service
+matures.
+
 ## The one hard rule: backend providers go through the registry
 
 **If your PR adds a search, code, or docs backend, it must use the registry
@@ -67,12 +100,9 @@ A backend PR will be rejected if it does any of the following:
   client and must accept empty credentials; `Usable` decides eligibility
   without network I/O; `Probe` is the only place that talks to the service.
 
-Merging a provider means it is supported through the registry. It does not
-make it a recommended default, and it does not by itself earn a row in the
-README backend tables or the docs site; provider recommendation is a separate
-product decision and the documentation update is a separate change. Please say
-in the PR whether you are affiliated with the service. That is not a problem,
-it just belongs in the description.
+Passing this rule is about wiring; admission is decided by the questions in
+the section above. Please say in the PR whether you are affiliated with the
+service. That is not a problem, it just belongs in the description.
 
 ## Everything else
 
