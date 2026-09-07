@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Provider registries** (internal). Search, code, and docs backends are now declared by a descriptor beside each implementation and listed in an explicit, ordered `registry.go` per package. Config keys, `KETCH_*` env overrides, redacted `ketch config` discovery, `ketch doctor`, CLI backend lists, MCP tool and argument descriptions, and `--multi` / `--random` eligibility all derive from the descriptor. No user-visible behavior changes: config files, discovery JSON, doctor output, help text, error messages, and MCP `tools/list` are byte-identical to 0.14.1. Adding a provider is now one Go file plus one registry line; see `CONTRIBUTING.md` and `AGENTS.md`. Config files keep loading exactly as before, including hand-edited upper- or mixed-case provider keys. The gh CLI token is now memoised for 30 seconds inside one process, so building the GitHub backend launches `gh auth token` once rather than once per lookup. **Go API:** the typed per-provider fields on `config.Config` (`BraveAPIKey`, `SearxngURL`, `GithubToken`, ...) are gone; Go callers read settings with `String`/`Strings` and write them with `SetProvider`. The accessor methods (`BraveKeys()` and friends) remain.
+- **Provider registries.** Search, code, and docs providers now own their settings, construction, and health checks through descriptors in an ordered `registry.go`. Config discovery, CLI/MCP descriptions, doctor, and search multi/random eligibility derive from those registries. Provider additions include tests, fixtures, and documentation; see the [provider guide](AGENTS.md#adding-a-provider). Config loading continues to accept upper- and mixed-case provider keys.
+- **GitHub token lookup.** The gh CLI token is cached for 30 seconds within a process, avoiding repeated `gh auth token` calls during backend construction.
+- **Go API change.** The typed provider fields on `config.Config` (`BraveAPIKey`, `SearxngURL`, `GithubToken`, ...) are removed. Go callers use `String`/`Strings` to read settings and `SetProvider` to write them. Accessor methods such as `BraveKeys()` remain.
 
 ### Added
 - `degoog` search backend (#29, ported onto the provider registry; thanks @wonderbeel): the self-hosted [degoog](https://github.com/degoog-org/degoog) meta-search aggregator, a second self-hosted option alongside SearXNG. Opt-in: set `degoog_url` (no default instance); until then it is not usable and absent from `--multi=all` / `--random=all`, and `ketch doctor` reports it as misconfigured (advisory, or blocking when it is the selected backend, as for SearXNG). Doctor also flags instances that require an API key for `/api/search`.
-- `CONTRIBUTING.md`: what a mergeable PR looks like, and the requirement that new backend providers use the registry pattern.
+- [Contribution guidelines](CONTRIBUTING.md) covering provider admission, registry integration, focused pull requests, and validation.
 
 ## [0.14.1] - 2026-09-05
 

@@ -38,7 +38,7 @@ updatecheck/                 "new release available" probe + throttled stderr hi
 site/                        VitePress documentation site (deployed to gh-pages)
 ```
 
-Reusable packages live at the module root so external programs can `import "github.com/1broseidon/ketch/<pkg>"`. Nothing is module-private right now — if something becomes CLI-only, move it under `internal/`.
+Reusable packages live at the module root so external programs can `import "github.com/1broseidon/ketch/<pkg>"`. Shared implementation helpers, including the config model used by provider packages, live under `internal/`.
 
 ## Design Principles
 
@@ -152,13 +152,42 @@ ketch mcp serve                             # run as an MCP server over stdio (s
 
 ## Adding a provider
 
-Add the implementation, descriptor, and health probe in one Go file under `search/`, `code/`, or `docs/`, plus its tests. Add one descriptor call to that package's ordered `providers` slice in `registry.go`. Config keys, environment overrides, redacted discovery, doctor, CLI backend lists, MCP descriptions, and search multi/random eligibility then follow the descriptor. Do not add provider switches to consumers or register through `init()`.
+Use the provider registry for new search, code, and docs backends. Read
+[CONTRIBUTING.md](CONTRIBUTING.md#proposing-a-provider) for admission criteria.
 
-- Define `ID`, `Name`, `Settings`, `Usable`, `New`, and `Probe`. `Usable` checks configuration without network I/O; `Build` applies it before `New`. Factories only construct clients and must also accept empty credentials; they never probe or validate credentials themselves.
-- Import `internal/configbase` as `config` inside provider packages to avoid the public config facade's dependency on all three registries. The public `config.Config` is an alias for the same model. Read settings with `String`/`Strings`, and use `SetProvider` for overrides so shared MCP config is not mutated.
-- Use `config.KeyPool("example_api_key", "example_api_keys")` for rotating credentials, or a `config.Setting` for a scalar URL or token. Provider settings own defaults, secret handling, and optional token resolution. Existing order numbers preserve legacy JSON and environment presentation; new key pools need no order numbers.
-- Doctor checks every provider. Selection or explicitly configured credentials make a failed check required; this differs from usability (a selected provider with a missing key must still fail doctor). `GateDoctor` marks settings that trigger this requirement. Search providers may declare `MinProbeTimeout` for slow self-hosted probes.
-- Code providers declare regex support in their descriptor. Docs providers may implement `docs.LibraryResolver` for library resolution and direct lookup; consumers assert the interface, with no capability bitflags. Keep the unimplemented local docs provider hidden.
-- Test requests, result mapping, authentication, cancellation, and relevant error/retry behavior. Run `make lint` and `make test`; config and doctor golden fixtures must stay unchanged for a refactor, and a new provider may only add its own keys and doctor row to them (`UPDATE_REGISTRY_GOLDENS=1 go test ./cmd/ ./doctor/`). The cross-package completion test in `search/registry_test.go` demonstrates one registration flowing through every consumer.
+Place the implementation, descriptor, and health probe in one Go file under
+`search/`, `code/`, or `docs/`, with tests alongside it. Append its descriptor
+call to the package's ordered
+`providers` slice in `registry.go`; register explicitly, without `init()`.
+Config discovery, CLI/MCP descriptions, doctor, and search multi/random
+eligibility follow the descriptor. Keep provider-specific branches and config
+fields out of shared consumers.
 
-The existing provider-specific config accessors remain compatibility helpers; adding a provider does not require adding another accessor. Static documentation (README and site backend tables) is updated in the same PR when a provider is admitted, but it is not executable registration. Admission criteria live in `CONTRIBUTING.md`.
+- Define `ID`, `Name`, `Settings`, `Usable`, `New`, and `Probe`.
+- `Usable` checks configuration without network I/O. `Build` checks it before
+  calling `New`.
+- `New` only constructs a client and must accept empty credentials. `Probe`
+  performs the health check; construction must not contact the service.
+- Import `internal/configbase` as `config` to avoid an import cycle with the
+  public config facade. Read values with `String`/`Strings`; use `SetProvider`
+  for overrides so per-call changes do not mutate shared MCP config.
+- Declare settings on the descriptor: `config.KeyPool` for rotating credentials,
+  `config.Scalar` for URLs, or `config.Setting` for custom secret/token behavior.
+  Keep existing order values; new settings use the helpers' default ordering.
+  Existing provider-specific accessors are compatibility helpers, not a pattern
+  to extend.
+- Doctor checks are required when the provider is selected or a setting marked
+  `GateDoctor` is configured. Missing credentials or an instance URL must fail
+  a selected provider's check. Set `MinProbeTimeout` for slower search probes.
+- Code providers declare regex support in the descriptor. Docs providers can
+  implement `docs.LibraryResolver` for library operations. Keep the unfinished
+  local docs provider hidden.
+
+Test requests, result mapping, authentication, cancellation, and relevant retry
+and error behavior without live services. Run `make lint` and `make test`.
+Regenerate config/doctor fixtures with
+`UPDATE_REGISTRY_GOLDENS=1 go test ./cmd/ ./doctor/`; preserve existing entries
+and add only the new provider's entries. Refactors must leave fixtures unchanged.
+See [the registration test](search/registry_test.go) for a provider flowing
+through shared consumers. Include documentation and changelog updates as
+described in [CONTRIBUTING.md](CONTRIBUTING.md#implementing-a-provider).

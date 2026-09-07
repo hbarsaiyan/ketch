@@ -4,7 +4,7 @@ ketch has three search surfaces, each with its own backends: web search (`ketch 
 
 ## Web Search Backends
 
-ketch supports nine web-search backends. Set the default with `ketch config set backend <name>`. To query several at once, use `ketch search --multi` (rank-fused federation) or `--random` (one shuffled provider with fallback) — see the [command reference](/reference/commands#ketch-search).
+Set the default with `ketch config set backend <name>`. To query several at once, use `ketch search --multi` (rank-fused federation) or `--random` (one shuffled provider with fallback) — see the [command reference](/reference/commands#ketch-search).
 
 Every keyed backend also accepts a pool of keys (`brave_api_keys`, `exa_api_keys`, `firecrawl_api_keys`, `keenable_api_keys`, `tavily_api_keys`, `serpbase_api_keys`); ketch picks one at random per request and retries once with a different key on `401`/`429` (`402` for Firecrawl). See [multiple API keys](/guide/configuration#multiple-api-keys-per-provider).
 
@@ -139,7 +139,12 @@ Google search results through the [SerpBase](https://serpbase.dev) REST API. Ket
 
 ## Degoog
 
-Self-hosted [Degoog](https://github.com/degoog-org/degoog) meta-search aggregator, a second self-hosted option alongside SearXNG. Ketch calls its `/api/search` JSON endpoint and maps titles, URLs, and snippets into its standard result fields. Opt-in: there is no default instance, so the backend is not usable, not a required `ketch doctor` check, and absent from `--multi=all` until `degoog_url` is set.
+Self-hosted [Degoog](https://github.com/degoog-org/degoog) meta-search aggregator.
+Ketch calls its `/api/search` JSON endpoint and maps titles, URLs, and snippets
+into its standard result fields. Set `degoog_url` to enable it; there is no
+default instance. Without a URL, it is excluded from `--multi=all` and
+`--random=all`. Doctor reports the missing URL as misconfigured; this blocks
+doctor only when degoog is the selected backend.
 
 **Setup:**
 
@@ -194,3 +199,10 @@ Curated, version-aware documentation snippets.
 ### Local
 
 A planned FTS5 SQLite backend for offline/private docs. Not yet implemented.
+
+## Proposing a provider
+
+Ketch maintains a curated set of supported providers. See the
+[contribution guide](https://github.com/1broseidon/ketch/blob/main/CONTRIBUTING.md#proposing-a-provider)
+for admission criteria and discuss a new provider in an issue before
+implementing it.
