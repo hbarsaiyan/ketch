@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-07
+
 ### Changed
 - **Provider registries.** Search, code, and docs providers now own their settings, construction, and health checks through descriptors in an ordered `registry.go`. Config discovery, CLI/MCP descriptions, doctor, and search multi/random eligibility derive from those registries. Provider additions include tests, fixtures, and documentation; see the [provider guide](AGENTS.md#adding-a-provider). Config loading continues to accept upper- and mixed-case provider keys.
 - **GitHub token lookup.** The gh CLI token is cached for 30 seconds within a process, avoiding repeated `gh auth token` calls during backend construction.

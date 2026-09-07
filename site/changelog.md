@@ -2,6 +2,29 @@
 
 This page mirrors the canonical [`CHANGELOG.md`](https://github.com/1broseidon/ketch/blob/main/CHANGELOG.md) in the repo root. Versions follow [Semantic Versioning](https://semver.org/) and match the published git tags.
 
+## v0.15.0 — 2026-09-07
+
+**Changed**
+- **Provider registries.** Search, code, and docs providers now own their settings, construction, and health checks through descriptors in an ordered `registry.go`. Config discovery, CLI/MCP descriptions, doctor, and search multi/random eligibility derive from those registries. Provider additions include tests, fixtures, and documentation; see the [provider guide](https://github.com/1broseidon/ketch/blob/main/AGENTS.md#adding-a-provider). Config loading continues to accept upper- and mixed-case provider keys.
+- **GitHub token lookup.** The gh CLI token is cached for 30 seconds within a process, avoiding repeated `gh auth token` calls during backend construction.
+- **Go API change.** The typed provider fields on `config.Config` (`BraveAPIKey`, `SearxngURL`, `GithubToken`, ...) are removed. Go callers use `String`/`Strings` to read settings and `SetProvider` to write them. Accessor methods such as `BraveKeys()` remain.
+
+**Added**
+- `degoog` search backend (#29, ported onto the provider registry; thanks @wonderbeel): the self-hosted [degoog](https://github.com/degoog-org/degoog) meta-search aggregator, a second self-hosted option alongside SearXNG. Opt-in: set `degoog_url` (no default instance); until then it is not usable and absent from `--multi=all` / `--random=all`, and `ketch doctor` reports it as misconfigured (advisory, or blocking when it is the selected backend, as for SearXNG). Doctor also flags instances that require an API key for `/api/search`.
+- [Contribution guidelines](https://github.com/1broseidon/ketch/blob/main/CONTRIBUTING.md) covering provider admission, registry integration, focused pull requests, and validation.
+
+## v0.14.1 — 2026-09-05
+
+**Added**
+- **MCP tool pruning** (#36). New `mcp_tools` config key — an allowlist of the tools `ketch mcp serve` publishes, in canonical order (`search`, `code`, `docs`, `scrape`, `crawl`). Set it as a JSON array (`ketch config set mcp_tools '["search","scrape"]'`) or a comma-separated list, or via the `KETCH_MCP_TOOLS` env override; unset or `[]` publishes all five. Unlisted tools are never registered, and the initialize `serverInstructions` are generated from the enabled set — a pruned server tells agents exactly what it offers and never routes them to a tool that isn't there; the output-size guidance appears whenever an enabled tool accepts output-bounding arguments (`search`, `scrape`, `crawl`). `ketch config` reports the effective `mcp_tools` set. Validation is fail-loud (listing valid names) at `config set`, on the env override, and at server startup.
+
+**Fixed**
+- Embedded `data:` URI image sources are replaced with compact omission markers before HTML-to-markdown conversion, preventing large base64 payloads from bloating markdown output. CSS selectors still match the original image attributes (#48, closes #47).
+- Keenable search results now read page text from `snippet`, falling back to `description`, so results no longer lose their text when the page's meta description is empty. Result text is collapsed to one line and capped at 500 characters (#43).
+- Headless-browser fetches now honor configured `user_agent` and `--user-agent` values; when unset, Chromium's native User-Agent remains unchanged (#45).
+- Headless-browser fetches no longer advertise `HeadlessChrome` by default (#45). With no `user_agent` configured, ketch reads the installed browser's own User-Agent after launch and, when it carries the `HeadlessChrome/` product token, relaunches once with that same string minus the `Headless` prefix. Version, platform, and `sec-ch-ua` client hints stay truthful — the browser presents as itself in normal mode, which is what lets `--force-browser` get past Akamai-style filters that hard-403 the headless token. A configured `user_agent` / `--user-agent` still wins unchanged.
+- Page-cache keys now include the configured `user_agent`. Sites serve different content (or a bot wall) per User-Agent, but the cache key carried only the URL and cookie identity, so switching UAs could return a page fetched under the previous one. An explicitly configured UA (config, `KETCH_USER_AGENT`, or `--user-agent`) is folded into `Scraper.CacheKey` as a short digest, in the same style as the cookie-jar fingerprint; the built-in default keeps the bare key, so existing cache entries stay valid for operators who never set one. Crawl shares the key.
+
 ## v0.14.0 — 2026-08-07
 
 **Added**
