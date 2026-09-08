@@ -142,28 +142,33 @@ func TestProbeFirecrawlNoKey(t *testing.T) {
 
 func TestProbeFirecrawlHostedStatuses(t *testing.T) {
 	cases := []struct {
-		name string
-		key  string
-		code int
-		want Status
+		name       string
+		key        string
+		code       int
+		want       Status
+		wantDetail string // substring; empty skips the detail check
 	}{
-		{"keyless ok", "", http.StatusOK, StatusOK},
-		{"keyless rate limited", "", http.StatusTooManyRequests, StatusOK},
-		{"keyless credits", "", http.StatusPaymentRequired, StatusMisconfigured},
-		{"keyless unauthorized", "", http.StatusUnauthorized, StatusMisconfigured},
-		{"keyless forbidden", "", http.StatusForbidden, StatusOK},
-		{"keyed rate limited", "k", http.StatusTooManyRequests, StatusOK},
-		{"keyed rejected", "k", http.StatusUnauthorized, StatusMisconfigured},
-		{"keyed forbidden", "k", http.StatusForbidden, StatusMisconfigured},
+		{"keyless ok", "", http.StatusOK, StatusOK, ""},
+		{"keyless rate limited", "", http.StatusTooManyRequests, StatusOK, "rate limited"},
+		{"keyless credits", "", http.StatusPaymentRequired, StatusMisconfigured, "credits exhausted"},
+		{"keyless unauthorized", "", http.StatusUnauthorized, StatusMisconfigured, "request rejected"},
+		{"keyless forbidden", "", http.StatusForbidden, StatusOK, "keyless blocked"},
+		{"keyed rate limited", "k", http.StatusTooManyRequests, StatusOK, "key accepted"},
+		{"keyed rejected", "k", http.StatusUnauthorized, StatusMisconfigured, "API key rejected"},
+		{"keyed forbidden", "k", http.StatusForbidden, StatusMisconfigured, "API key rejected"},
+		{"keyed credits", "k", http.StatusPaymentRequired, StatusMisconfigured, "credits exhausted"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &http.Client{Transport: probeRoundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: tc.code, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{}`))}, nil
 			})}
-			status, _ := probeFirecrawl(testCtx(t), client, config.FirecrawlSearchURL(config.DefaultFirecrawlURL), tc.key)
+			status, detail := probeFirecrawl(testCtx(t), client, config.FirecrawlSearchURL(config.DefaultFirecrawlURL), tc.key)
 			if status != tc.want {
-				t.Fatalf("status = %q, want %q", status, tc.want)
+				t.Fatalf("status = %q (detail %q), want %q", status, detail, tc.want)
+			}
+			if tc.wantDetail != "" && !strings.Contains(detail, tc.wantDetail) {
+				t.Errorf("detail = %q, want substring %q", detail, tc.wantDetail)
 			}
 		})
 	}
