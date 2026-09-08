@@ -50,10 +50,7 @@
     "github"
   ],
   "available_doc_backends": [
-    "context7",
-    "readthedocs"
+    "context7"
   ],
-  "degoog_url": "",
-  "readthedocs_url": "https://app.readthedocs.org",
-  "readthedocs_api_token_set": false
+  "degoog_url": ""
 }

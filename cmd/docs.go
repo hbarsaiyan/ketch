@@ -48,10 +48,7 @@ func runDocs(cmd *cobra.Command, args []string) error {
 		if !docs.SupportsLibraries(backend) {
 			return exitErrf(ExitValidation, "--library requires the %s backend (got %q)", strings.Join(docs.LibraryBackends(), ", "), backend)
 		}
-		if !cmd.Flags().Changed("limit") {
-			limit = 0 // the token budget is the only bound unless --limit is explicit
-		}
-		return runDocsWithLibrary(cmd, query, library, tokens, limit, asJSON, minimal)
+		return runDocsWithLibrary(cmd, query, library, tokens, asJSON, minimal)
 	}
 
 	searcher, err := newDocSearcher(backend)
@@ -59,7 +56,7 @@ func runDocs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	results, resolution, err := docs.Query(cmd.Context(), searcher, query, limit)
+	results, err := searcher.Search(cmd.Context(), query, limit)
 	if err != nil {
 		return upstreamErr(err, "docs search failed")
 	}
@@ -68,7 +65,7 @@ func runDocs(cmd *cobra.Command, args []string) error {
 		return json.NewEncoder(os.Stdout).Encode(results)
 	}
 
-	printDocsResults(query, backend, "", results, resolution, minimal)
+	printDocsResults(query, backend, "", results, minimal)
 	return nil
 }
 
@@ -93,17 +90,12 @@ func runDocsResolve(cmd *cobra.Command, query string, limit int, asJSON bool) er
 	}
 
 	for _, m := range matches {
-		if m.TotalSnippets == 0 && m.TrustScore == 0 {
-			// Providers without Context7's ranking metadata describe the match instead.
-			fmt.Printf("%s  %s  %s\n", m.ID, m.Title, m.Description)
-			continue
-		}
 		fmt.Printf("%s  %s  (snippets: %d, trust: %.1f)\n", m.ID, m.Title, m.TotalSnippets, m.TrustScore)
 	}
 	return nil
 }
 
-func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens, limit int, asJSON bool, minimal bool) error {
+func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens int, asJSON bool, minimal bool) error {
 	backend, _ := cmd.Flags().GetString("backend")
 	searcher, err := newDocSearcher(backend)
 	if err != nil {
@@ -117,22 +109,16 @@ func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens, limit
 	if err != nil {
 		return upstreamErr(err, "docs fetch failed")
 	}
-	if limit > 0 && len(results) > limit {
-		results = results[:limit]
-	}
 
 	if asJSON {
 		return json.NewEncoder(os.Stdout).Encode(results)
 	}
 
-	printDocsResults(query, backend, library, results, nil, minimal)
+	printDocsResults(query, backend, library, results, minimal)
 	return nil
 }
 
-// printDocsResults renders results as frontmatter plus entries. A bare-query
-// resolution adds the library the provider chose and, when it ranked others,
-// a candidates: line so an agent can retry with --library.
-func printDocsResults(query, backend, library string, results []docs.Result, resolution *docs.Resolution, minimal bool) {
+func printDocsResults(query, backend, library string, results []docs.Result, minimal bool) {
 	if minimal {
 		for _, r := range results {
 			snippet := firstLine(r.Snippet)
@@ -144,20 +130,10 @@ func printDocsResults(query, backend, library string, results []docs.Result, res
 	fmt.Println("---")
 	fmt.Printf("query: %s\n", query)
 	fmt.Printf("backend: %s\n", backend)
-	switch {
-	case library != "":
+	if library != "" {
 		fmt.Printf("library: %s\n", library)
-	case resolution != nil && resolution.Library != "":
-		fmt.Printf("library: %s\n", resolution.Library)
-	case len(results) > 0 && results[0].Library != "":
+	} else if len(results) > 0 && results[0].Library != "" {
 		fmt.Printf("library: %s\n", results[0].Library)
-	}
-	if resolution != nil && len(resolution.Candidates) > 0 {
-		ids := make([]string, len(resolution.Candidates))
-		for i, m := range resolution.Candidates {
-			ids[i] = m.ID
-		}
-		fmt.Printf("candidates: %s\n", strings.Join(ids, ", "))
 	}
 	fmt.Printf("result_count: %d\n", len(results))
 	fmt.Println("---")

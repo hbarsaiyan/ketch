@@ -37,7 +37,7 @@ type toolMeta struct {
 var toolProse = map[string]toolMeta{
 	"search": {"web search", "search for the open web"},
 	"code":   {"grep public OSS repos for real-world usage", "code for code examples"},
-	"docs":   {"library/API documentation via " + strings.Join(docs.ProviderNames(), ", "), "docs for library references"},
+	"docs":   {"curated library/API documentation via " + strings.Join(docs.ProviderNames(), ", "), "docs for library references"},
 	"scrape": {"fetch URLs as clean markdown", "scrape when you already have the URL"},
 	"crawl":  {"bounded same-host multi-page crawl", "crawl only when one page is not enough"},
 }

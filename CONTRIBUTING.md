@@ -10,9 +10,8 @@ before implementing a new provider so we can discuss its fit.
 
 Providers must meet these criteria:
 
-- **The service's domain matches the surface:** it exists to serve web
-  results, code, or documentation. A search endpoint attached to a product in
-  some other domain does not qualify.
+- **Search is the primary product:** web search, code search, or documentation
+  search.
 - **Established use:** an active community or users beyond the provider's own
   team, with a demonstrated maintenance history.
 - **Competitive results:** useful results and substantive snippets, comparable

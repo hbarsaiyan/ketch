@@ -7,6 +7,5 @@
   "code_backend": "grepapp",
   "docs_backend": "context7",
   "sourcegraph_url": "https://sourcegraph.com",
-  "external_pdf_to_md_converter_timeout_sec": 300,
-  "readthedocs_url": "https://app.readthedocs.org"
+  "external_pdf_to_md_converter_timeout_sec": 300
 }

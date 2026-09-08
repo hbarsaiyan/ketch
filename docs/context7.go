@@ -3,7 +3,6 @@ package docs
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -68,68 +67,18 @@ type context7InfoSnippet struct {
 	Content    string `json:"content"`
 }
 
-const (
-	// context7Candidates is how many libraries a bare query resolves; the
-	// runners-up are reported so a wrong choice can be corrected.
-	context7Candidates = 5
-	// context7Attempts bounds how many candidates are fetched when earlier
-	// ones no longer exist or return nothing.
-	context7Attempts = 3
-	// context7BareTokens is the documentation budget for a bare query.
-	context7BareTokens = 4000
-)
-
 // Search resolves a library from the query and fetches documentation.
 func (c *Context7) Search(ctx context.Context, query string, limit int) ([]Result, error) {
-	results, _, err := c.SearchResolved(ctx, query, limit)
-	return results, err
-}
-
-// SearchResolved resolves the query to candidate libraries and fetches
-// documentation from the highest-ranked one that still exists and has any.
-// Context7's resolver ranks library names, so a question-shaped query can
-// land on the wrong library; the resolution carries the runners-up so the
-// caller can retry with an explicit ID. Results are bounded by limit when it
-// is positive.
-func (c *Context7) SearchResolved(ctx context.Context, query string, limit int) ([]Result, *Resolution, error) {
-	libs, err := c.ResolveLibrary(ctx, query, context7Candidates)
+	// Only the top-ranked library is used, so resolve just that one.
+	libs, err := c.ResolveLibrary(ctx, query, 1)
 	if err != nil {
-		return nil, nil, fmt.Errorf("context7 resolve failed: %w", err)
+		return nil, fmt.Errorf("context7 resolve failed: %w", err)
 	}
 	if len(libs) == 0 {
-		return nil, nil, fmt.Errorf("context7: no library found for %q", query)
+		return nil, fmt.Errorf("context7: no library found for %q", query)
 	}
 
-	used := -1
-	var results []Result
-	var notFound error
-	for i := 0; i < len(libs) && i < context7Attempts; i++ {
-		got, err := c.GetDocs(ctx, libs[i].ID, query, context7BareTokens)
-		if errors.Is(err, ErrNotFound) {
-			notFound = err // stale resolver entry: try the next candidate
-			continue
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-		used, results = i, got
-		if len(got) > 0 {
-			break
-		}
-	}
-	if used < 0 {
-		return nil, nil, notFound
-	}
-	if limit > 0 && len(results) > limit {
-		results = results[:limit]
-	}
-	res := &Resolution{Library: libs[used].ID}
-	for i, lib := range libs {
-		if i != used {
-			res.Candidates = append(res.Candidates, lib)
-		}
-	}
-	return results, res, nil
+	return c.GetDocs(ctx, libs[0].ID, query, 4000)
 }
 
 // ResolveLibrary searches Context7 for libraries matching the given name,

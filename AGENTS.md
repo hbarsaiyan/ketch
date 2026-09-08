@@ -24,7 +24,7 @@ cmd/
   proc_windows.go            Windows process management stub
 search/                      Searcher interface + Brave/DDG/SearXNG/EXA/Firecrawl/Keenable/Tavily/Parallel/SerpBase/Degoog backends; NewFromConfig resolves the ordered provider registry for cmd/ and mcp/. multi.go adds federated --multi search (RRF fusion, NewMultiFromConfig), canonical.go the URL dedup keys
 code/                        code.Searcher interface + GrepApp/Sourcegraph/GitHub backends; NewFromConfig resolves the ordered provider registry
-docs/                        docs.Searcher interface + Context7 and Read the Docs backends (FTS5 local is an unimplemented stub); NewFromConfig resolves the ordered provider registry
+docs/                        docs.Searcher interface + Context7 backend (FTS5 local is an unimplemented stub); NewFromConfig resolves the ordered provider registry
 mcp/                         MCP server (search/code/docs/scrape/crawl tools; the mcp_tools config key is an allowlist over the published set) over the go-sdk mcp package; Server struct holds the shared scraper + cache, tools call the same NewFromConfig constructors as the CLI
 scrape/                      HTTP fetch + Page type, JS detection fallback, Rod browser; pipeline.go has the cache-aware scrape pipeline (CachedScrape*, ScrapeSelector, FetchLLMSTxt) shared by cmd/ and mcp/
 extract/                     readability + html-to-markdown pipeline, JS shell detection (Detector: built-in + config spa_markers, modern hydration/streaming frameworks)
@@ -105,8 +105,7 @@ ketch code "query"                          # code search (grepapp)
 ketch code "query" --lang go               # with language filter
 ketch docs "query"                          # docs search (context7)
 ketch docs "query" --library /org/repo     # skip resolve, fetch directly
-ketch docs "query" -b readthedocs --library flask   # Read the Docs project slug (or slug/version)
-ketch docs --resolve "library name"        # resolve library name → Context7 IDs (or a Read the Docs slug)
+ketch docs --resolve "library name"        # resolve library name → Context7 IDs
 ketch config                                # show effective config + backends (incl. *_key_set presence booleans)
 ketch cache                                 # show cache stats
 ketch doctor                                # live health check of every backend + browser + cache (exit 5 if a configured surface is broken)
@@ -132,10 +131,10 @@ ketch mcp serve                             # run as an MCP server over stdio (s
 | --allow | crawl | — | Path substring filters |
 | --deny | crawl | — | Regex deny patterns |
 | --backend, -b | code | grepapp | Code backend (grepapp/sourcegraph/github) |
-| --backend, -b | docs | context7 | Docs backend (context7/readthedocs; local is planned, not implemented) |
+| --backend, -b | docs | context7 | Docs backend (context7; local is planned, not implemented) |
 | --lang | code | — | Language qualifier (appended to query) |
-| --library | docs | — | Context7 library ID or Read the Docs project slug[/version], skips resolve |
-| --tokens | docs | 4000 | Library token budget (Context7 tokens; Read the Docs caps section text at ~4 chars/token) |
+| --library | docs | — | Context7 library ID, skips resolve |
+| --tokens | docs | 4000 | Context7 token budget |
 | --resolve | docs | false | Resolve library name instead of searching |
 | --max-chars N | scrape, search --scrape | 0 (off) | Truncate markdown output to N chars, appends `[truncated]` |
 | --trim | scrape, search --scrape | false | Strip markdown formatting syntax, keep content text only |
@@ -181,9 +180,8 @@ fields out of shared consumers.
   `GateDoctor` is configured. Missing credentials or an instance URL must fail
   a selected provider's check. Set `MinProbeTimeout` for slower search probes.
 - Code providers declare regex support in the descriptor. Docs providers can
-  implement `docs.LibraryResolver` for library operations, and `docs.Resolving`
-  when a bare query first chooses a library, so the choice and its runners-up
-  reach the output. Keep the unfinished local docs provider hidden.
+  implement `docs.LibraryResolver` for library operations. Keep the unfinished
+  local docs provider hidden.
 
 Test requests, result mapping, authentication, cancellation, and relevant retry
 and error behavior without live services. Run `make lint` and `make test`.

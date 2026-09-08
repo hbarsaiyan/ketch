@@ -7,19 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.16.0] - 2026-09-07
-
-### Added
-- `readthedocs` docs backend: section-level search over documentation hosted on Read the Docs through its server-side search API, with deep links to section anchors and Sphinx objects. Zero config against the public instance; every query names a project (`--library <slug>` or `<slug>/<version>`, or `project:<slug>` in the query) because Read the Docs answers unscoped queries with nothing. `--resolve` confirms an exact project slug. Optional `readthedocs_url` (Business or self-hosted instance) and `readthedocs_api_token` (private projects, higher rate limit). `ketch doctor` probes it.
-- Bare `ketch docs` queries now report how the library was chosen. The text frontmatter gains `library:` (already present when results exist) and a `candidates:` line listing the resolver's runners-up; the MCP `docs` tool adds a `resolution` object with the same data. `--json` output is unchanged.
-
-### Fixed
-- An explicit `--limit` (MCP `limit`) now also bounds `--library` results; without it the token budget remains the only bound, as before.
-- Context7 bare queries honour `--limit`, and when the top-ranked library no longer exists or returns nothing, the next candidates (up to three) are tried before giving up. Previously the first pick was final and `--limit` was ignored.
-- Sourcegraph queries for common identifiers no longer fail with `bufio.Scanner: token too long`; a single `matches` event may now be up to 16 MB.
-
-### Changed
-- `CONTRIBUTING.md`: the first admission criterion now reads "the service's domain matches the surface" rather than "search is the primary product", which wrongly excluded documentation and code hosts whose search is a feature of the product (the case GitHub already passes).
+Version 0.16.0 was published on 2026-09-07 and withdrawn the same day. The Go module proxy retains it, so the next release is 0.16.1 or later.
 
 ## [0.15.0] - 2026-09-07
 

@@ -60,7 +60,7 @@ func TestDocsUnknownBackendExitsValidationWithOptions(t *testing.T) {
 	if exitErr.Code != ExitValidation {
 		t.Errorf("exit code = %d, want %d (validation)", exitErr.Code, ExitValidation)
 	}
-	if !strings.Contains(exitErr.Error(), "(available: "+strings.Join(docs.AvailableBackends(), ", ")+")") {
+	if !strings.Contains(exitErr.Error(), "(available: context7)") {
 		t.Errorf("error should list the available backends, got: %v", exitErr)
 	}
 }
@@ -71,11 +71,6 @@ func TestUpstreamErrClassification(t *testing.T) {
 	notFound := fmt.Errorf("context7: library %q %w", "/no/such-lib", docs.ErrNotFound)
 	if got := asExitError(t, upstreamErr(notFound, "docs fetch failed")); got.Code != ExitNotFound {
 		t.Errorf("docs.ErrNotFound: exit code = %d, want %d (not found)", got.Code, ExitNotFound)
-	}
-
-	scoped := fmt.Errorf("readthedocs: %w — add --library", docs.ErrScopeRequired)
-	if got := asExitError(t, upstreamErr(scoped, "docs search failed")); got.Code != ExitValidation {
-		t.Errorf("docs.ErrScopeRequired: exit code = %d, want %d (validation)", got.Code, ExitValidation)
 	}
 
 	if got := asExitError(t, upstreamErr(errors.New("boom"), "docs fetch failed")); got.Code != ExitUpstream {

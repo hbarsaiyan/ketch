@@ -39,7 +39,6 @@ func (p Provider) Required(cfg *config.Config) bool {
 
 var providers = []Provider{
 	context7Provider(),
-	readTheDocsProvider(),
 	localProvider(),
 }
 
