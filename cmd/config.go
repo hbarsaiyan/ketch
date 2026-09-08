@@ -9,11 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/1broseidon/ketch/code"
 	"github.com/1broseidon/ketch/config"
 	"github.com/1broseidon/ketch/cookies"
+	"github.com/1broseidon/ketch/docs"
 	"github.com/1broseidon/ketch/extract"
 	"github.com/1broseidon/ketch/internal/configbase"
 	"github.com/1broseidon/ketch/scrape"
+	"github.com/1broseidon/ketch/search"
 	"github.com/1broseidon/ketch/urlrewrite"
 	"github.com/spf13/cobra"
 )
@@ -212,7 +215,7 @@ func applyConfigSet(c *config.Config, key, value string) error {
 	}
 	switch key {
 	case "backend":
-		c.Backend = value
+		return setBackend(&c.Backend, "search", value, func(id string) bool { _, ok := search.Lookup(id); return ok }, config.AvailableBackends())
 	case "limit":
 		return setLimit(c, value)
 	case "cache_ttl":
@@ -220,9 +223,9 @@ func applyConfigSet(c *config.Config, key, value string) error {
 	case "browser":
 		c.Browser = value
 	case "code_backend":
-		c.CodeBackend = value
+		return setBackend(&c.CodeBackend, "code", value, func(id string) bool { _, ok := code.Lookup(id); return ok }, config.AvailableCodeBackends())
 	case "docs_backend":
-		c.DocsBackend = value
+		return setBackend(&c.DocsBackend, "docs", value, func(id string) bool { _, ok := docs.Lookup(id); return ok }, config.AvailableDocBackends())
 	case "url_rewrites":
 		return setURLRewrites(c, value)
 	case "spa_markers":
@@ -359,6 +362,33 @@ func setSPAMarkers(c *config.Config, value string) error {
 	}
 	c.SPAMarkers = markers
 	return nil
+}
+
+// setBackend persists a default backend for one surface after checking the
+// name against that surface's registry. The check uses the registry lookup
+// rather than the advertised list so a hidden provider (the planned local
+// docs backend) is accepted exactly when the command itself would accept it;
+// the error lists only advertised names. Names are exact: the commands
+// resolve them case-sensitively, so "Brave" would fail at run time.
+func setBackend(dst *string, surface, value string, known func(string) bool, available []string) error {
+	name := strings.TrimSpace(value)
+	if name == "" {
+		return exitErrf(ExitValidation, "%sbackend cannot be empty (valid: %s)", surfaceKeyPrefix(surface), strings.Join(available, ", "))
+	}
+	if !known(name) {
+		return exitErrf(ExitValidation, "unknown %s backend %q (valid: %s)", surface, name, strings.Join(available, ", "))
+	}
+	*dst = name
+	return nil
+}
+
+// surfaceKeyPrefix maps a surface to its config key stem: the search key is
+// the historical bare "backend", the others carry the surface name.
+func surfaceKeyPrefix(surface string) string {
+	if surface == "search" {
+		return ""
+	}
+	return surface + "_"
 }
 
 // setMCPTools persists the allowlist of tools `ketch mcp serve` publishes.

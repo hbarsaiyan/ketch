@@ -125,10 +125,10 @@ ketch docs <query> [flags]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--backend, -b` | `context7` | Docs backend: `context7`, `local` (not yet implemented) |
-| `--limit, -l` | `5` | Max number of results |
+| `--limit, -l` | `5` | Max number of results. With `--library`, applied only when passed explicitly |
 | `--library` | — | Context7 library ID (skip resolve step) |
 | `--resolve` | `false` | Resolve library name instead of searching |
-| `--tokens` | `4000` | Context7 token budget |
+| `--tokens` | `4000` | Context7 token budget (the only bound on `--library` output unless `--limit` is given) |
 | `--minimal` | `false` | One result per line, tab-separated |
 
 **Examples:**
@@ -310,6 +310,11 @@ ketch config init         # create default config file
 ketch config set <k> <v>  # set a config value
 ketch config path         # print config file path
 ```
+
+`config set` validates values before writing: `backend`, `code_backend`, and
+`docs_backend` must name a registered provider (the error lists the valid
+names), and `mcp_tools`, `limit`, `cache_ttl`, `url_rewrites`, and
+`spa_markers` are checked the same way.
 
 Every config key except `url_rewrites`, `spa_markers`, and the plural
 `*_api_keys` pools can also be set through `KETCH_*` environment variables;

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Version 0.16.0 was published on 2026-09-07 and withdrawn the same day. The Go module proxy retains it, so the next release is 0.16.1 or later.
 
+### Fixed
+- `ketch config set backend|code_backend|docs_backend` now validates the name against the provider registry and fails with the list of valid names. Previously any string was stored, and every later `search`, `code`, or `docs` call failed with "unknown backend". Names are exact and an empty value is rejected, matching what the commands accept.
+- `ketch docs` and the MCP `docs` tool honour `--limit`. Context7 returned every snippet in its token budget regardless of the requested limit. Bare queries now cap at the limit (default 5); `--library` lookups stay bounded by `--tokens` alone unless `--limit` is passed explicitly, so existing library output is unchanged.
+- `sourcegraph` code search no longer fails with `bufio.Scanner: token too long` on repositories whose match events exceed 64 KiB. The SSE reader accepts events up to 16 MiB.
+
 ## [0.15.0] - 2026-09-07
 
 ### Changed

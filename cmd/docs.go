@@ -48,7 +48,10 @@ func runDocs(cmd *cobra.Command, args []string) error {
 		if !docs.SupportsLibraries(backend) {
 			return exitErrf(ExitValidation, "--library requires the %s backend (got %q)", strings.Join(docs.LibraryBackends(), ", "), backend)
 		}
-		return runDocsWithLibrary(cmd, query, library, tokens, asJSON, minimal)
+		if !cmd.Flags().Changed("limit") {
+			limit = 0 // the token budget is the only bound unless --limit is explicit
+		}
+		return runDocsWithLibrary(cmd, query, library, tokens, limit, asJSON, minimal)
 	}
 
 	searcher, err := newDocSearcher(backend)
@@ -95,7 +98,9 @@ func runDocsResolve(cmd *cobra.Command, query string, limit int, asJSON bool) er
 	return nil
 }
 
-func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens int, asJSON bool, minimal bool) error {
+// runDocsWithLibrary fetches docs for a known library ID. tokens bounds what
+// the provider returns; a positive limit additionally caps the result count.
+func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens, limit int, asJSON bool, minimal bool) error {
 	backend, _ := cmd.Flags().GetString("backend")
 	searcher, err := newDocSearcher(backend)
 	if err != nil {
@@ -109,6 +114,7 @@ func runDocsWithLibrary(cmd *cobra.Command, query, library string, tokens int, a
 	if err != nil {
 		return upstreamErr(err, "docs fetch failed")
 	}
+	results = docs.Truncate(results, limit)
 
 	if asJSON {
 		return json.NewEncoder(os.Stdout).Encode(results)

@@ -67,7 +67,11 @@ type context7InfoSnippet struct {
 	Content    string `json:"content"`
 }
 
-// Search resolves a library from the query and fetches documentation.
+// Search resolves a library from the query and fetches documentation,
+// returning at most limit results when limit is positive. The token budget
+// bounds what Context7 sends back; limit bounds what the caller sees, so
+// --limit and the MCP limit argument mean the same thing here as on every
+// other surface.
 func (c *Context7) Search(ctx context.Context, query string, limit int) ([]Result, error) {
 	// Only the top-ranked library is used, so resolve just that one.
 	libs, err := c.ResolveLibrary(ctx, query, 1)
@@ -78,7 +82,11 @@ func (c *Context7) Search(ctx context.Context, query string, limit int) ([]Resul
 		return nil, fmt.Errorf("context7: no library found for %q", query)
 	}
 
-	return c.GetDocs(ctx, libs[0].ID, query, 4000)
+	results, err := c.GetDocs(ctx, libs[0].ID, query, 4000)
+	if err != nil {
+		return nil, err
+	}
+	return Truncate(results, limit), nil
 }
 
 // ResolveLibrary searches Context7 for libraries matching the given name,

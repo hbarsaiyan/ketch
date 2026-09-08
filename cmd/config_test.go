@@ -531,3 +531,46 @@ func TestEffectiveMCPTools(t *testing.T) {
 		t.Errorf("invalid: effective = %v, want raw [wiki]", got)
 	}
 }
+
+// Backend names are checked against the registries at `config set` time so a
+// typo fails loudly instead of persisting a config every command then rejects.
+func TestApplyConfigSetBackendValidatesAgainstRegistry(t *testing.T) {
+	for _, tc := range []struct{ key, value, wantErr string }{
+		{"backend", "ddg", ""},
+		{"backend", " exa ", ""},
+		{"backend", "brve", `unknown search backend "brve"`},
+		{"backend", "Brave", `unknown search backend "Brave"`},
+		{"backend", "", "backend cannot be empty"},
+		{"code_backend", "sourcegraph", ""},
+		{"code_backend", "grep", `unknown code backend "grep"`},
+		{"docs_backend", "context7", ""},
+		{"docs_backend", "local", ""}, // hidden but registered: the command accepts it, so config set must too
+		{"docs_backend", "ctx7", `unknown docs backend "ctx7"`},
+		{"docs_backend", "", "docs_backend cannot be empty"},
+	} {
+		c := config.Defaults()
+		err := applyConfigSet(&c, tc.key, tc.value)
+		if tc.wantErr == "" {
+			if err != nil {
+				t.Errorf("%s=%q: unexpected error %v", tc.key, tc.value, err)
+				continue
+			}
+			got := map[string]string{"backend": c.Backend, "code_backend": c.CodeBackend, "docs_backend": c.DocsBackend}[tc.key]
+			if want := strings.TrimSpace(tc.value); got != want {
+				t.Errorf("%s=%q: stored %q, want %q", tc.key, tc.value, got, want)
+			}
+			continue
+		}
+		if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+			t.Errorf("%s=%q: got %v, want error containing %q", tc.key, tc.value, err, tc.wantErr)
+			continue
+		}
+		var ee *ExitError
+		if !errors.As(err, &ee) || ee.Code != ExitValidation {
+			t.Errorf("%s=%q: want validation exit code, got %v", tc.key, tc.value, err)
+		}
+		if !strings.Contains(err.Error(), "(valid: ") {
+			t.Errorf("%s=%q: error should list valid names: %v", tc.key, tc.value, err)
+		}
+	}
+}

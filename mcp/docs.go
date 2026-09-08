@@ -16,7 +16,7 @@ type DocsInput struct {
 	Backend string `json:"backend,omitempty" jsonschema:"docs backend (default: the configured backend)"`
 	Library string `json:"library,omitempty" jsonschema:"library ID to fetch docs from directly, skipping the resolve step; requires a backend with library operations"`
 	Tokens  int    `json:"tokens,omitempty" jsonschema:"library token budget when library is set (default 4000)"`
-	Limit   int    `json:"limit,omitempty" jsonschema:"max number of results (default: the configured limit)"`
+	Limit   int    `json:"limit,omitempty" jsonschema:"max number of results (default: the configured limit; with library set, unbounded unless given)"`
 	Resolve bool   `json:"resolve,omitempty" jsonschema:"resolve a library name to library IDs instead of searching docs"`
 }
 
@@ -63,7 +63,9 @@ func (s *Server) registerDocsTool() {
 			if !docs.SupportsLibraries(backend) {
 				return nil, DocsOutput{}, errf(kindValidation, "library requires the %s backend (got %q)", strings.Join(docs.LibraryBackends(), ", "), backend)
 			}
-			return s.docsForLibrary(ctx, backend, in.Query, in.Library, tokens)
+			// Like the CLI, an explicit limit caps library docs; otherwise the
+			// token budget is the only bound, so in.Limit is passed unresolved.
+			return s.docsForLibrary(ctx, backend, in.Query, in.Library, tokens, in.Limit)
 		}
 
 		searcher, err := docs.NewFromConfig(s.cfg, backend)
@@ -94,8 +96,9 @@ func (s *Server) docsResolve(ctx context.Context, backend, query string, limit i
 	return nil, DocsOutput{Matches: matches}, nil
 }
 
-// docsForLibrary fetches docs for a known Context7 library ID.
-func (s *Server) docsForLibrary(ctx context.Context, backend, query, library string, tokens int) (*mcpsdk.CallToolResult, DocsOutput, error) {
+// docsForLibrary fetches docs for a known library ID, capped at limit
+// results when limit is positive.
+func (s *Server) docsForLibrary(ctx context.Context, backend, query, library string, tokens, limit int) (*mcpsdk.CallToolResult, DocsOutput, error) {
 	resolver, err := s.libraryResolver(backend)
 	if err != nil {
 		return nil, DocsOutput{}, err
@@ -104,7 +107,7 @@ func (s *Server) docsForLibrary(ctx context.Context, backend, query, library str
 	if err != nil {
 		return nil, DocsOutput{}, upstreamErrf(err, "docs fetch failed")
 	}
-	return nil, DocsOutput{Results: results}, nil
+	return nil, DocsOutput{Results: docs.Truncate(results, limit)}, nil
 }
 
 // libraryResolver constructs an optional docs capability through the registry.
