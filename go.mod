@@ -2,6 +2,10 @@ module github.com/1broseidon/ketch
 
 go 1.25.7
 
+// v0.16.0 was published and withdrawn the same day; its docs backends were
+// not ready. v0.16.1 is v0.15.0 plus fixes.
+retract v0.16.0
+
 require (
 	codeberg.org/readeck/go-readability/v2 v2.1.1
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0

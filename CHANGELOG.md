@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Version 0.16.0 was published on 2026-09-07 and withdrawn the same day. The Go module proxy retains it, so the next release is 0.16.1 or later.
+## [0.16.1] - 2026-09-07
+
+Version 0.16.0 was published on 2026-09-07 and withdrawn the same day; its Read the Docs backend and Context7 candidate resolution were not ready. The Go module proxy retains it, so this release carries a `retract v0.16.0` directive. 0.16.1 is 0.15.0 plus the fixes below and contains none of the 0.16.0 additions.
 
 ### Fixed
 - `ketch config set backend|code_backend|docs_backend` now validates the name against the provider registry and fails with the list of valid names. Previously any string was stored, and every later `search`, `code`, or `docs` call failed with "unknown backend". Names are exact and an empty value is rejected, matching what the commands accept.
