@@ -213,7 +213,7 @@ ketch docs "project:pip requirements file" -b readthedocs       # Read the Docs 
 ketch docs --resolve flask -b readthedocs                       # confirm a slug exists
 ```
 
-`--resolve` looks up an exact slug (Read the Docs has no public project search). Optional settings: `readthedocs_url` for a Business or self-hosted instance (default `https://app.readthedocs.org`) and `readthedocs_api_token`, which unlocks private projects and lifts the anonymous rate limit.
+`--resolve` looks up an exact slug (Read the Docs has no public project search) through the project API, which Read the Docs limits to about five anonymous requests per minute; searches themselves are not limited (30 sequential and 12 parallel calls passed without a 429 in testing). Coverage is real only for projects that publish on Read the Docs: `flask`, `requests`, `pip`, `sphinx`, `pytest`, `celery`, `scrapy`, `urllib3`, `jinja`, `werkzeug`, `pillow` all return results, while placeholder slugs such as `django`, `numpy`, `pandas`, `sqlalchemy`, and `kubernetes` exist but are empty because those projects host their docs elsewhere. Optional settings: `readthedocs_url` for a Business or self-hosted instance (default `https://app.readthedocs.org`) and `readthedocs_api_token`, which unlocks private projects and lifts the anonymous rate limit.
 
 **Recommended for:** Python and Sphinx-based projects whose canonical docs live on Read the Docs, and as a second opinion beside Context7.
 
